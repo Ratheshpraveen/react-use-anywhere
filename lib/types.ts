@@ -1,23 +1,23 @@
-import { JwtPayload } from 'jsonwebtoken';
+// Authentication Types for JWT Implementation
 
-// JWT Payload interface extending standard JWT payload
-export interface CustomJWTPayload extends JwtPayload {
+export interface JWTPayload {
   userId: string;
   email: string;
   role?: string;
+  iat?: number; // Issued at
+  exp?: number; // Expiration time
 }
 
-// Authentication state interface for managing JWT-based authentication
 export interface AuthState {
   isAuthenticated: boolean;
+  user: JWTPayload | null;
   token: string | null;
-  user: {
-    id: string;
-    email: string;
-    role?: string;
-  } | null;
-  expiresAt: number | null;
+  refreshToken?: string | null;
 }
 
-// Optional: Token types for clarity
-export type TokenType = 'access' | 'refresh';
+// Existing types can remain unchanged
+export interface User {
+  id: string;
+  email: string;
+  // other existing user properties
+}
