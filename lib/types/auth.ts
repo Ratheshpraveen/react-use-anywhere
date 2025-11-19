@@ -9,18 +9,23 @@ export interface CustomJWTPayload extends JwtPayload {
 
 // Authentication state interface for managing JWT-based authentication
 export interface AuthState {
-  isAuthenticated: boolean;
   token: string | null;
+  refreshToken: string | null;
+  isAuthenticated: boolean;
   user: {
     id: string;
     email: string;
     role?: string;
   } | null;
-  expiresAt: number | null;
 }
 
-// Optional: Token types for clarity
-export enum TokenType {
-  ACCESS = 'access',
-  REFRESH = 'refresh'
-}// JWT Authentication types
+// Token response interface from authentication endpoint
+export interface TokenResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: {
+    id: string;
+    email: string;
+    role?: string;
+  };
+}

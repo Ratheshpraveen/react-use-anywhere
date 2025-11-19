@@ -23,4 +23,4 @@ export interface AuthState {
 export enum TokenType {
   ACCESS = 'access',
   REFRESH = 'refresh'
-}// JWT Authentication types
+}
