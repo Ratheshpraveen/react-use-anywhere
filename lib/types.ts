@@ -20,7 +20,4 @@ export interface AuthState {
 }
 
 // Optional: Token types for clarity
-export enum TokenType {
-  ACCESS = 'access',
-  REFRESH = 'refresh'
-}// JWT Authentication types
+export type TokenType = 'access' | 'refresh';
