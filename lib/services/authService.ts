@@ -8,11 +8,6 @@ export class AuthService {
     user: null
   };
 
-  /**
-   * Login user and generate tokens
-   * @param credentials User login credentials
-   * @returns Authentication state
-   */
   static async login(credentials: LoginCredentials): Promise<AuthState> {
     try {
       // TODO: Replace with actual authentication logic (e.g., API call)
@@ -22,105 +17,79 @@ export class AuthService {
         role: 'user'
       };
 
-      // Generate tokens
-      const accessToken = JWTService.generateAccessToken(mockUser);
-      const refreshToken = JWTService.generateRefreshToken(mockUser);
+      const accessToken = JWTService.generateAccessToken({
+        userId: mockUser.id,
+        email: mockUser.email,
+        role: mockUser.role
+      });
 
-      // Update auth state
+      const refreshToken = JWTService.generateRefreshToken({
+        userId: mockUser.id,
+        email: mockUser.email,
+        role: mockUser.role
+      });
+
+      // Store refresh token securely (e.g., httpOnly cookie or secure storage)
       this.authState = {
         isAuthenticated: true,
         token: accessToken,
         user: mockUser
       };
 
-      // Store refresh token (e.g., in localStorage or secure cookie)
-      localStorage.setItem('refreshToken', refreshToken);
-
       return this.authState;
     } catch (error) {
-      this.logout();
-      throw new Error('Login failed');
+      throw new Error('Authentication failed');
     }
   }
 
-  /**
-   * Register a new user
-   * @param credentials User registration credentials
-   * @returns Authentication state
-   */
   static async register(credentials: RegisterCredentials): Promise<AuthState> {
     try {
-      // TODO: Replace with actual registration logic (e.g., API call)
+      // TODO: Replace with actual registration logic
       const mockUser = {
         id: 'newUser123',
         email: credentials.email,
+        name: credentials.name,
         role: credentials.role || 'user'
       };
 
-      // Generate tokens
-      const accessToken = JWTService.generateAccessToken(mockUser);
-      const refreshToken = JWTService.generateRefreshToken(mockUser);
+      const accessToken = JWTService.generateAccessToken({
+        userId: mockUser.id,
+        email: mockUser.email,
+        role: mockUser.role
+      });
 
-      // Update auth state
       this.authState = {
         isAuthenticated: true,
         token: accessToken,
         user: mockUser
       };
 
-      // Store refresh token
-      localStorage.setItem('refreshToken', refreshToken);
-
       return this.authState;
     } catch (error) {
-      this.logout();
       throw new Error('Registration failed');
     }
   }
 
-  /**
-   * Refresh access token
-   * @returns New authentication state with refreshed token
-   */
-  static async refreshToken(): Promise<AuthState> {
-    try {
-      const refreshToken = localStorage.getItem('refreshToken');
-      if (!refreshToken) {
-        throw new Error('No refresh token');
-      }
-
-      const newAccessToken = JWTService.refreshAccessToken(refreshToken);
-
-      // Update auth state with new token
-      this.authState = {
-        ...this.authState,
-        token: newAccessToken
-      };
-
-      return this.authState;
-    } catch (error) {
-      this.logout();
-      throw new Error('Token refresh failed');
+  static async refreshToken(currentRefreshToken: string): Promise<string | null> {
+    const newAccessToken = JWTService.refreshAccessToken(currentRefreshToken);
+    
+    if (newAccessToken) {
+      this.authState.token = newAccessToken;
+      return newAccessToken;
     }
+
+    return null;
   }
 
-  /**
-   * Logout user and clear authentication state
-   */
   static logout(): void {
     this.authState = {
       isAuthenticated: false,
       token: null,
       user: null
     };
-    localStorage.removeItem('refreshToken');
   }
 
-  /**
-   * Get current authentication state
-   * @returns Current authentication state
-   */
-  static getAuthState(): AuthState {
+  static getCurrentAuthState(): AuthState {
     return this.authState;
   }
 }
