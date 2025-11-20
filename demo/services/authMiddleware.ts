@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { JWTService } from '../../lib/services/jwtService';
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  const token = req.headers.authorization?.split(' ')[1];
+  const token = req.headers.authorization?.split(' ')[1]; // Bearer TOKEN
 
   if (!token) {
     return res.status(401).json({ message: 'No token provided' });
@@ -14,8 +14,8 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
     return res.status(401).json({ message: 'Invalid or expired token' });
   }
 
-  // Attach user information to the request object
-  req.user = {
+  // Attach user info to request for further use
+  (req as any).user = {
     id: decoded.userId,
     email: decoded.email,
     role: decoded.role
@@ -24,11 +24,14 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
   next();
 };
 
-export const requireRole = (roles: string[]) => {
+export const roleMiddleware = (allowedRoles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.user || !roles.includes(req.user.role || '')) {
+    const user = (req as any).user;
+
+    if (!user || !allowedRoles.includes(user.role)) {
       return res.status(403).json({ message: 'Insufficient permissions' });
     }
+
     next();
   };
-};
+}
