@@ -28,24 +28,21 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     try {
       const authState = await AuthService.login(credentials);
       
-      // Store token in localStorage (for demo purposes)
-      // In a production app, use more secure methods like httpOnly cookies
-      if (authState.token) {
-        localStorage.setItem('token', authState.token);
-      }
-
-      // Optional callback for parent component
+      // Optional callback for successful login
       onLoginSuccess?.();
+
+      // You might want to redirect or update app state here
+      console.log('Login successful', authState);
     } catch (err) {
-      setError('Login failed. Please check your credentials.');
+      setError(err instanceof Error ? err.message : 'Login failed');
     }
   };
 
   return (
-    <div>
-      <h2>Login</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+    <div className="login-container">
       <form onSubmit={handleLogin}>
+        <h2>Login</h2>
+        {error && <p className="error-message">{error}</p>}
         <div>
           <label htmlFor="email">Email:</label>
           <input
