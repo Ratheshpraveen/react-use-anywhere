@@ -1,24 +1,23 @@
 import jwt from 'jsonwebtoken';
 import { CustomJWTPayload } from '../types';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_default_secret_key';
-const ACCESS_TOKEN_EXPIRY = '15m';
-const REFRESH_TOKEN_EXPIRY = '7d';
-
 export class JWTService {
-  static generateAccessToken(payload: Omit<CustomJWTPayload, 'exp'>): string {
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
+  private static SECRET_KEY = process.env.JWT_SECRET || 'fallback_secret_key';
+  private static TOKEN_EXPIRATION = '1h';
+  private static REFRESH_TOKEN_EXPIRATION = '7d';
+
+  static generateToken(payload: { userId: string; email: string; role?: string }): string {
+    return jwt.sign(payload, this.SECRET_KEY, { expiresIn: this.TOKEN_EXPIRATION });
   }
 
-  static generateRefreshToken(payload: Omit<CustomJWTPayload, 'exp'>): string {
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRY });
+  static generateRefreshToken(payload: { userId: string; email: string; role?: string }): string {
+    return jwt.sign(payload, this.SECRET_KEY, { expiresIn: this.REFRESH_TOKEN_EXPIRATION });
   }
 
   static verifyToken(token: string): CustomJWTPayload | null {
     try {
-      return jwt.verify(token, JWT_SECRET) as CustomJWTPayload;
+      return jwt.verify(token, this.SECRET_KEY) as CustomJWTPayload;
     } catch (error) {
-      console.error('Token verification failed:', error);
       return null;
     }
   }
@@ -27,12 +26,15 @@ export class JWTService {
     return jwt.decode(token) as CustomJWTPayload | null;
   }
 
-  static refreshAccessToken(refreshToken: string): string | null {
+  static refreshToken(refreshToken: string): string | null {
     const decoded = this.verifyToken(refreshToken);
     if (!decoded) return null;
 
     // Create a new access token with the same payload
-    const { userId, email, role } = decoded;
-    return this.generateAccessToken({ userId, email, role });
+    return this.generateToken({
+      userId: decoded.userId,
+      email: decoded.email,
+      role: decoded.role
+    });
   }
 }
