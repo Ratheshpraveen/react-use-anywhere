@@ -2,30 +2,49 @@ import { Request, Response, NextFunction } from 'express';
 import { JWTService } from '../../lib/services/jwtService';
 
 export class AuthMiddleware {
-  static verifyToken(req: Request, res: Response, next: NextFunction) {
-    const token = req.headers.authorization?.split(' ')[1];
+  /**
+   * Middleware to verify JWT token
+   * @param req Express request object
+   * @param res Express response object
+   * @param next Express next function
+   */
+  static verifyToken(req: Request, res: Response, next: NextFunction): void {
+    // Get token from header
+    const token = req.headers['authorization']?.split(' ')[1]; // Expects "Bearer TOKEN"
 
     if (!token) {
-      return res.status(401).json({ message: 'No token provided' });
+      res.status(403).json({ error: 'No token provided' });
+      return;
     }
 
-    const decoded = JWTService.verifyAccessToken(token);
+    try {
+      // Verify token
+      const decoded = JWTService.verifyToken(token);
 
-    if (!decoded) {
-      return res.status(403).json({ message: 'Invalid or expired token' });
+      if (!decoded) {
+        res.status(401).json({ error: 'Unauthorized: Invalid token' });
+        return;
+      }
+
+      // Attach user info to request
+      (req as any).user = decoded;
+      next();
+    } catch (error) {
+      res.status(401).json({ error: 'Unauthorized: Token verification failed' });
     }
-
-    // Attach user info to request for further use
-    (req as any).user = decoded;
-    next();
   }
 
-  static requireRole(roles: string[]) {
-    return (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Middleware to check user role
+   * @param allowedRoles Array of roles allowed to access the route
+   */
+  static checkRole(allowedRoles: string[]) {
+    return (req: Request, res: Response, next: NextFunction): void => {
       const user = (req as any).user;
 
-      if (!user || !roles.includes(user.role)) {
-        return res.status(403).json({ message: 'Insufficient permissions' });
+      if (!user || !user.role || !allowedRoles.includes(user.role)) {
+        res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
+        return;
       }
 
       next();

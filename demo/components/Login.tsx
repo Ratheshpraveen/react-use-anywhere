@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { AuthService } from '../../lib/services/authService';
 import { LoginCredentials } from '../../lib/types';
 
-export const Login: React.FC = () => {
+interface LoginProps {
+  onLoginSuccess?: () => void;
+}
+
+export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [credentials, setCredentials] = useState<LoginCredentials>({
     email: '',
     password: ''
@@ -17,46 +21,50 @@ export const Login: React.FC = () => {
     }));
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
     try {
       const authState = await AuthService.login(credentials);
       
-      // Store token in local storage or secure cookie
-      if (authState.token) {
-        localStorage.setItem('accessToken', authState.token);
-      }
+      // Optional callback for successful login
+      onLoginSuccess?.();
 
-      // Redirect or update app state
-      console.log('Logged in successfully', authState);
+      // You might want to update app state or redirect here
+      console.log('Login successful', authState);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     }
   };
 
   return (
-    <div>
-      <h2>Login</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <form onSubmit={handleLogin}>
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={credentials.email}
-          onChange={handleInputChange}
-          required
-        />
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          value={credentials.password}
-          onChange={handleInputChange}
-          required
-        />
+    <div className="login-container">
+      <form onSubmit={handleSubmit}>
+        <h2>Login</h2>
+        {error && <div className="error-message">{error}</div>}
+        <div>
+          <label htmlFor="email">Email:</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            value={credentials.email}
+            onChange={handleInputChange}
+            required
+          />
+        </div>
+        <div>
+          <label htmlFor="password">Password:</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            value={credentials.password}
+            onChange={handleInputChange}
+            required
+          />
+        </div>
         <button type="submit">Login</button>
       </form>
     </div>

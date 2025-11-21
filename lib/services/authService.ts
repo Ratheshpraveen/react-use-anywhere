@@ -1,120 +1,182 @@
-import { LoginCredentials, RegisterCredentials, AuthState } from '../types';
+import { LoginCredentials, RegisterCredentials, CustomJWTPayload, AuthState } from '../types';
 import { JWTService } from './jwtService';
 
 export class AuthService {
-  private static authState: AuthState = {
-    isAuthenticated: false,
-    token: null,
-    user: null
-  };
+  private static storageKey = 'auth_token';
+  private static refreshStorageKey = 'refresh_token';
 
+  /**
+   * Login user and generate tokens
+   * @param credentials User login credentials
+   * @returns AuthState object
+   */
   static async login(credentials: LoginCredentials): Promise<AuthState> {
     try {
-      // TODO: Replace with actual authentication logic (e.g., API call)
-      const mockUser = {
-        id: 'user123',
-        email: credentials.email,
-        role: 'user'
+      // Simulate API call - replace with actual authentication logic
+      const user = await this.authenticateUser(credentials);
+
+      // Create JWT payload
+      const payload: CustomJWTPayload = {
+        userId: user.id,
+        email: user.email,
+        role: user.role
       };
 
-      const accessToken = JWTService.generateAccessToken({
-        userId: mockUser.id,
-        email: mockUser.email,
-        role: mockUser.role
-      });
+      // Generate tokens
+      const accessToken = JWTService.generateAccessToken(payload);
+      const refreshToken = JWTService.generateRefreshToken(payload);
 
-      const refreshToken = JWTService.generateRefreshToken({
-        userId: mockUser.id,
-        email: mockUser.email,
-        role: mockUser.role
-      });
+      // Store tokens
+      this.setTokens(accessToken, refreshToken);
 
-      // Store refresh token securely (e.g., in secure storage or httpOnly cookie)
-      localStorage.setItem('refreshToken', refreshToken);
-
-      this.authState = {
+      return {
         isAuthenticated: true,
         token: accessToken,
-        user: mockUser
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role
+        }
       };
-
-      return this.authState;
     } catch (error) {
       throw new Error('Authentication failed');
     }
   }
 
+  /**
+   * Register a new user
+   * @param credentials User registration credentials
+   * @returns AuthState object
+   */
   static async register(credentials: RegisterCredentials): Promise<AuthState> {
     try {
-      // TODO: Replace with actual registration logic (e.g., API call)
-      const mockUser = {
-        id: 'newUser123',
-        email: credentials.email,
-        name: credentials.name,
-        role: credentials.role || 'user'
+      // Simulate user registration - replace with actual registration logic
+      const user = await this.registerUser(credentials);
+
+      // Create JWT payload
+      const payload: CustomJWTPayload = {
+        userId: user.id,
+        email: user.email,
+        role: user.role || 'user'
       };
 
-      const accessToken = JWTService.generateAccessToken({
-        userId: mockUser.id,
-        email: mockUser.email,
-        role: mockUser.role
-      });
+      // Generate tokens
+      const accessToken = JWTService.generateAccessToken(payload);
+      const refreshToken = JWTService.generateRefreshToken(payload);
 
-      const refreshToken = JWTService.generateRefreshToken({
-        userId: mockUser.id,
-        email: mockUser.email,
-        role: mockUser.role
-      });
+      // Store tokens
+      this.setTokens(accessToken, refreshToken);
 
-      localStorage.setItem('refreshToken', refreshToken);
-
-      this.authState = {
+      return {
         isAuthenticated: true,
         token: accessToken,
-        user: mockUser
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role
+        }
       };
-
-      return this.authState;
     } catch (error) {
       throw new Error('Registration failed');
     }
   }
 
-  static async refreshAccessToken(): Promise<string | null> {
-    const refreshToken = localStorage.getItem('refreshToken');
-    
-    if (!refreshToken) {
-      this.logout();
-      return null;
-    }
+  /**
+   * Refresh access token
+   * @returns New access token
+   */
+  static refreshAccessToken(): string | null {
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) return null;
 
-    const decodedToken = JWTService.verifyRefreshToken(refreshToken);
-    
-    if (!decodedToken) {
-      this.logout();
-      return null;
-    }
-
-    const newAccessToken = JWTService.generateAccessToken({
-      userId: decodedToken.userId,
-      email: decodedToken.email,
-      role: decodedToken.role
-    });
-
-    this.authState.token = newAccessToken;
-    return newAccessToken;
+    return JWTService.refreshAccessToken(refreshToken);
   }
 
+  /**
+   * Logout user
+   */
   static logout(): void {
-    localStorage.removeItem('refreshToken');
-    this.authState = {
-      isAuthenticated: false,
-      token: null,
-      user: null
+    this.clearTokens();
+  }
+
+  /**
+   * Check if user is authenticated
+   * @returns Boolean indicating authentication status
+   */
+  static isAuthenticated(): boolean {
+    const token = this.getAccessToken();
+    if (!token) return false;
+
+    const decoded = JWTService.verifyToken(token);
+    return !!decoded;
+  }
+
+  /**
+   * Get current user from token
+   * @returns User object or null
+   */
+  static getCurrentUser(): { id: string; email: string; role?: string } | null {
+    const token = this.getAccessToken();
+    if (!token) return null;
+
+    const decoded = JWTService.verifyToken(token);
+    if (!decoded) return null;
+
+    return {
+      id: decoded.userId,
+      email: decoded.email,
+      role: decoded.role
     };
   }
 
-  static getCurrentAuthState(): AuthState {
-    return this.authState;
+  // Private helper methods
+  private static setTokens(accessToken: string, refreshToken: string): void {
+    localStorage.setItem(this.storageKey, accessToken);
+    localStorage.setItem(this.refreshStorageKey, refreshToken);
+  }
+
+  private static getAccessToken(): string | null {
+    return localStorage.getItem(this.storageKey);
+  }
+
+  private static getRefreshToken(): string | null {
+    return localStorage.getItem(this.refreshStorageKey);
+  }
+
+  private static clearTokens(): void {
+    localStorage.removeItem(this.storageKey);
+    localStorage.removeItem(this.refreshStorageKey);
+  }
+
+  // Simulated authentication methods - replace with actual API calls
+  private static async authenticateUser(credentials: LoginCredentials): Promise<{
+    id: string;
+    email: string;
+    role?: string;
+  }> {
+    // Simulate user authentication
+    // In a real app, this would be an API call to validate credentials
+    if (credentials.email === 'test@example.com' && credentials.password === 'password') {
+      return {
+        id: 'user123',
+        email: credentials.email,
+        role: 'user'
+      };
+    }
+    throw new Error('Invalid credentials');
+  }
+
+  private static async registerUser(credentials: RegisterCredentials): Promise<{
+    id: string;
+    email: string;
+    role?: string;
+  }> {
+    // Simulate user registration
+    // In a real app, this would be an API call to create a new user
+    return {
+      id: 'newuser' + Date.now(),
+      email: credentials.email,
+      role: credentials.role || 'user'
+    };
   }
 }
