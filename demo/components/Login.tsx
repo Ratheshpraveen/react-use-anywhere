@@ -31,8 +31,8 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       // Optional callback for successful login
       onLoginSuccess?.();
 
-      // You might want to update app state or redirect here
-      console.log('Login successful', authState);
+      // You might want to update app-wide state or redirect here
+      console.log('Logged in successfully', authState);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     }

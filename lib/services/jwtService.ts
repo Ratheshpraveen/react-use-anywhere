@@ -50,7 +50,7 @@ export class JWTService {
     const decoded = this.verifyToken(refreshToken);
     if (!decoded) return null;
 
-    // Create a new payload excluding exp and iat
+    // Create a new payload, excluding exp and iat
     const { exp, iat, ...payload } = decoded;
     return this.generateAccessToken(payload as CustomJWTPayload);
   }

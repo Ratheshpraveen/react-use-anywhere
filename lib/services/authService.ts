@@ -12,21 +12,19 @@ export class AuthService {
    */
   static async login(credentials: LoginCredentials): Promise<AuthState> {
     try {
-      // Simulate API call - replace with actual authentication logic
-      const user = await this.authenticateUser(credentials);
+      // Simulate API call - replace with actual backend call
+      const user = await this.validateCredentials(credentials);
 
-      // Create JWT payload
       const payload: CustomJWTPayload = {
         userId: user.id,
         email: user.email,
         role: user.role
       };
 
-      // Generate tokens
       const accessToken = JWTService.generateAccessToken(payload);
       const refreshToken = JWTService.generateRefreshToken(payload);
 
-      // Store tokens
+      // Store tokens in local storage
       this.setTokens(accessToken, refreshToken);
 
       return {
@@ -39,7 +37,7 @@ export class AuthService {
         }
       };
     } catch (error) {
-      throw new Error('Authentication failed');
+      throw new Error('Login failed');
     }
   }
 
@@ -50,21 +48,19 @@ export class AuthService {
    */
   static async register(credentials: RegisterCredentials): Promise<AuthState> {
     try {
-      // Simulate user registration - replace with actual registration logic
-      const user = await this.registerUser(credentials);
+      // Simulate user creation - replace with actual backend call
+      const user = await this.createUser(credentials);
 
-      // Create JWT payload
       const payload: CustomJWTPayload = {
         userId: user.id,
         email: user.email,
-        role: user.role || 'user'
+        role: user.role
       };
 
-      // Generate tokens
       const accessToken = JWTService.generateAccessToken(payload);
       const refreshToken = JWTService.generateRefreshToken(payload);
 
-      // Store tokens
+      // Store tokens in local storage
       this.setTokens(accessToken, refreshToken);
 
       return {
@@ -82,7 +78,7 @@ export class AuthService {
   }
 
   /**
-   * Refresh access token
+   * Refresh the access token
    * @returns New access token
    */
   static refreshAccessToken(): string | null {
@@ -93,69 +89,81 @@ export class AuthService {
   }
 
   /**
-   * Logout user
+   * Logout user by clearing tokens
    */
   static logout(): void {
-    this.clearTokens();
+    localStorage.removeItem(this.storageKey);
+    localStorage.removeItem(this.refreshStorageKey);
   }
 
   /**
-   * Check if user is authenticated
-   * @returns Boolean indicating authentication status
+   * Get current authentication state
+   * @returns Current AuthState
    */
-  static isAuthenticated(): boolean {
+  static getCurrentAuthState(): AuthState {
     const token = this.getAccessToken();
-    if (!token) return false;
+    if (!token) {
+      return {
+        isAuthenticated: false,
+        token: null,
+        user: null
+      };
+    }
 
     const decoded = JWTService.verifyToken(token);
-    return !!decoded;
-  }
-
-  /**
-   * Get current user from token
-   * @returns User object or null
-   */
-  static getCurrentUser(): { id: string; email: string; role?: string } | null {
-    const token = this.getAccessToken();
-    if (!token) return null;
-
-    const decoded = JWTService.verifyToken(token);
-    if (!decoded) return null;
+    if (!decoded) {
+      this.logout();
+      return {
+        isAuthenticated: false,
+        token: null,
+        user: null
+      };
+    }
 
     return {
-      id: decoded.userId,
-      email: decoded.email,
-      role: decoded.role
+      isAuthenticated: true,
+      token,
+      user: {
+        id: decoded.userId,
+        email: decoded.email,
+        role: decoded.role
+      }
     };
   }
 
-  // Private helper methods
+  /**
+   * Store tokens in local storage
+   * @param accessToken Access token
+   * @param refreshToken Refresh token
+   */
   private static setTokens(accessToken: string, refreshToken: string): void {
     localStorage.setItem(this.storageKey, accessToken);
     localStorage.setItem(this.refreshStorageKey, refreshToken);
   }
 
+  /**
+   * Get access token from local storage
+   * @returns Access token or null
+   */
   private static getAccessToken(): string | null {
     return localStorage.getItem(this.storageKey);
   }
 
+  /**
+   * Get refresh token from local storage
+   * @returns Refresh token or null
+   */
   private static getRefreshToken(): string | null {
     return localStorage.getItem(this.refreshStorageKey);
   }
 
-  private static clearTokens(): void {
-    localStorage.removeItem(this.storageKey);
-    localStorage.removeItem(this.refreshStorageKey);
-  }
-
-  // Simulated authentication methods - replace with actual API calls
-  private static async authenticateUser(credentials: LoginCredentials): Promise<{
+  // Simulated methods - replace with actual backend calls
+  private static async validateCredentials(credentials: LoginCredentials): Promise<{
     id: string;
     email: string;
     role?: string;
   }> {
-    // Simulate user authentication
-    // In a real app, this would be an API call to validate credentials
+    // Simulate user validation
     if (credentials.email === 'test@example.com' && credentials.password === 'password') {
       return {
         id: 'user123',
@@ -166,13 +174,12 @@ export class AuthService {
     throw new Error('Invalid credentials');
   }
 
-  private static async registerUser(credentials: RegisterCredentials): Promise<{
+  private static async createUser(credentials: RegisterCredentials): Promise<{
     id: string;
     email: string;
     role?: string;
   }> {
-    // Simulate user registration
-    // In a real app, this would be an API call to create a new user
+    // Simulate user creation
     return {
       id: 'newuser' + Date.now(),
       email: credentials.email,

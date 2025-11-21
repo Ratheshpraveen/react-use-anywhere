@@ -8,30 +8,22 @@ export class AuthMiddleware {
    * @param res Express response object
    * @param next Express next function
    */
-  static verifyToken(req: Request, res: Response, next: NextFunction): void {
-    // Get token from header
-    const token = req.headers['authorization']?.split(' ')[1]; // Expects "Bearer TOKEN"
+  static verifyToken(req: Request, res: Response, next: NextFunction) {
+    const token = req.headers.authorization?.split(' ')[1]; // Bearer TOKEN
 
     if (!token) {
-      res.status(403).json({ error: 'No token provided' });
-      return;
+      return res.status(401).json({ message: 'No token provided' });
     }
 
-    try {
-      // Verify token
-      const decoded = JWTService.verifyToken(token);
+    const decoded = JWTService.verifyToken(token);
 
-      if (!decoded) {
-        res.status(401).json({ error: 'Unauthorized: Invalid token' });
-        return;
-      }
-
-      // Attach user info to request
-      (req as any).user = decoded;
-      next();
-    } catch (error) {
-      res.status(401).json({ error: 'Unauthorized: Token verification failed' });
+    if (!decoded) {
+      return res.status(401).json({ message: 'Invalid or expired token' });
     }
+
+    // Attach user info to request for further use
+    (req as any).user = decoded;
+    next();
   }
 
   /**
@@ -39,15 +31,19 @@ export class AuthMiddleware {
    * @param allowedRoles Array of roles allowed to access the route
    */
   static checkRole(allowedRoles: string[]) {
-    return (req: Request, res: Response, next: NextFunction): void => {
+    return (req: Request, res: Response, next: NextFunction) => {
       const user = (req as any).user;
 
       if (!user || !user.role || !allowedRoles.includes(user.role)) {
-        res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
-        return;
+        return res.status(403).json({ message: 'Access denied' });
       }
 
       next();
     };
   }
+
+  /**
+   * Protect routes that require authentication
+   */
+  static protectedRoute = this.verifyToken;
 }
