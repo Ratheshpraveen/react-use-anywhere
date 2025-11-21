@@ -31,14 +31,7 @@ export class JWTService {
     }
   }
 
-  static refreshAccessToken(refreshToken: string): string | null {
-    const decoded = this.verifyRefreshToken(refreshToken);
-    if (!decoded) return null;
-
-    return this.generateAccessToken({
-      userId: decoded.userId,
-      email: decoded.email,
-      role: decoded.role
-    });
+  static decodeToken(token: string): CustomJWTPayload | null {
+    return jwt.decode(token) as CustomJWTPayload | null;
   }
 }
