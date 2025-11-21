@@ -1,31 +1,26 @@
-import { LoginCredentials, RegisterCredentials, CustomJWTPayload, AuthState } from '../types';
+import { LoginCredentials, RegisterCredentials, AuthState, CustomJWTPayload } from '../types';
 import { JWTService } from './jwtService';
 
-export class AuthService {
-  private static storageKey = 'auth_token';
-  private static refreshStorageKey = 'refresh_token';
+// Mock user database (replace with actual database in production)
+const MOCK_USERS = [
+  { id: '1', email: 'user@example.com', password: 'password123', role: 'user' }
+];
 
+export class AuthService {
   /**
    * Login user and generate tokens
    * @param credentials User login credentials
-   * @returns AuthState object
+   * @returns Authentication state or null
    */
-  static async login(credentials: LoginCredentials): Promise<AuthState> {
-    try {
-      // Simulate API call - replace with actual backend call
-      const user = await this.validateCredentials(credentials);
+  static async login(credentials: LoginCredentials): Promise<AuthState | null> {
+    // Find user in mock database (replace with actual database query)
+    const user = MOCK_USERS.find(
+      u => u.email === credentials.email && u.password === credentials.password
+    );
 
-      const payload: CustomJWTPayload = {
-        userId: user.id,
-        email: user.email,
-        role: user.role
-      };
-
-      const accessToken = JWTService.generateAccessToken(payload);
-      const refreshToken = JWTService.generateRefreshToken(payload);
-
-      // Store tokens in local storage
-      this.setTokens(accessToken, refreshToken);
+    if (user) {
+      const accessToken = JWTService.generateAccessToken(user.id, user.email, user.role);
+      const refreshToken = JWTService.generateRefreshToken(user.id, user.email);
 
       return {
         isAuthenticated: true,
@@ -36,154 +31,83 @@ export class AuthService {
           role: user.role
         }
       };
-    } catch (error) {
-      throw new Error('Login failed');
     }
+
+    return null;
   }
 
   /**
    * Register a new user
    * @param credentials User registration credentials
-   * @returns AuthState object
+   * @returns Authentication state or null
    */
-  static async register(credentials: RegisterCredentials): Promise<AuthState> {
-    try {
-      // Simulate user creation - replace with actual backend call
-      const user = await this.createUser(credentials);
-
-      const payload: CustomJWTPayload = {
-        userId: user.id,
-        email: user.email,
-        role: user.role
-      };
-
-      const accessToken = JWTService.generateAccessToken(payload);
-      const refreshToken = JWTService.generateRefreshToken(payload);
-
-      // Store tokens in local storage
-      this.setTokens(accessToken, refreshToken);
-
-      return {
-        isAuthenticated: true,
-        token: accessToken,
-        user: {
-          id: user.id,
-          email: user.email,
-          role: user.role
-        }
-      };
-    } catch (error) {
-      throw new Error('Registration failed');
-    }
-  }
-
-  /**
-   * Refresh the access token
-   * @returns New access token
-   */
-  static refreshAccessToken(): string | null {
-    const refreshToken = this.getRefreshToken();
-    if (!refreshToken) return null;
-
-    return JWTService.refreshAccessToken(refreshToken);
-  }
-
-  /**
-   * Logout user by clearing tokens
-   */
-  static logout(): void {
-    localStorage.removeItem(this.storageKey);
-    localStorage.removeItem(this.refreshStorageKey);
-  }
-
-  /**
-   * Get current authentication state
-   * @returns Current AuthState
-   */
-  static getCurrentAuthState(): AuthState {
-    const token = this.getAccessToken();
-    if (!token) {
-      return {
-        isAuthenticated: false,
-        token: null,
-        user: null
-      };
+  static async register(credentials: RegisterCredentials): Promise<AuthState | null> {
+    // Check if user already exists (mock implementation)
+    const existingUser = MOCK_USERS.find(u => u.email === credentials.email);
+    
+    if (existingUser) {
+      return null;
     }
 
-    const decoded = JWTService.verifyToken(token);
-    if (!decoded) {
-      this.logout();
-      return {
-        isAuthenticated: false,
-        token: null,
-        user: null
-      };
-    }
+    // Create new user (mock implementation)
+    const newUser = {
+      id: String(MOCK_USERS.length + 1),
+      email: credentials.email,
+      password: credentials.password,
+      role: credentials.role || 'user'
+    };
+
+    MOCK_USERS.push(newUser);
+
+    const accessToken = JWTService.generateAccessToken(newUser.id, newUser.email, newUser.role);
+    const refreshToken = JWTService.generateRefreshToken(newUser.id, newUser.email);
 
     return {
       isAuthenticated: true,
-      token,
+      token: accessToken,
       user: {
-        id: decoded.userId,
-        email: decoded.email,
-        role: decoded.role
+        id: newUser.id,
+        email: newUser.email,
+        role: newUser.role
       }
     };
   }
 
   /**
-   * Store tokens in local storage
-   * @param accessToken Access token
-   * @param refreshToken Refresh token
+   * Refresh access token
+   * @param refreshToken Existing refresh token
+   * @returns New authentication state or null
    */
-  private static setTokens(accessToken: string, refreshToken: string): void {
-    localStorage.setItem(this.storageKey, accessToken);
-    localStorage.setItem(this.refreshStorageKey, refreshToken);
-  }
+  static async refreshToken(refreshToken: string): Promise<AuthState | null> {
+    const decoded = JWTService.verifyRefreshToken(refreshToken);
 
-  /**
-   * Get access token from local storage
-   * @returns Access token or null
-   */
-  private static getAccessToken(): string | null {
-    return localStorage.getItem(this.storageKey);
-  }
+    if (decoded) {
+      const user = MOCK_USERS.find(u => u.id === decoded.userId);
 
-  /**
-   * Get refresh token from local storage
-   * @returns Refresh token or null
-   */
-  private static getRefreshToken(): string | null {
-    return localStorage.getItem(this.refreshStorageKey);
-  }
+      if (user) {
+        const newAccessToken = JWTService.generateAccessToken(user.id, user.email, user.role);
 
-  // Simulated methods - replace with actual backend calls
-  private static async validateCredentials(credentials: LoginCredentials): Promise<{
-    id: string;
-    email: string;
-    role?: string;
-  }> {
-    // Simulate user validation
-    if (credentials.email === 'test@example.com' && credentials.password === 'password') {
-      return {
-        id: 'user123',
-        email: credentials.email,
-        role: 'user'
-      };
+        return {
+          isAuthenticated: true,
+          token: newAccessToken,
+          user: {
+            id: user.id,
+            email: user.email,
+            role: user.role
+          }
+        };
+      }
     }
-    throw new Error('Invalid credentials');
+
+    return null;
   }
 
-  private static async createUser(credentials: RegisterCredentials): Promise<{
-    id: string;
-    email: string;
-    role?: string;
-  }> {
-    // Simulate user creation
-    return {
-      id: 'newuser' + Date.now(),
-      email: credentials.email,
-      role: credentials.role || 'user'
-    };
+  /**
+   * Validate JWT token
+   * @param token JWT access token
+   * @returns Decoded token payload or null
+   */
+  static validateToken(token: string): CustomJWTPayload | null {
+    return JWTService.verifyAccessToken(token);
   }
 }

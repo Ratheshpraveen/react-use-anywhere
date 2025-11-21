@@ -12,13 +12,13 @@ export class AuthMiddleware {
     const token = req.headers.authorization?.split(' ')[1]; // Bearer TOKEN
 
     if (!token) {
-      return res.status(401).json({ message: 'No token provided' });
+      return res.status(403).json({ message: 'No token provided' });
     }
 
-    const decoded = JWTService.verifyToken(token);
+    const decoded = JWTService.verifyAccessToken(token);
 
     if (!decoded) {
-      return res.status(401).json({ message: 'Invalid or expired token' });
+      return res.status(401).json({ message: 'Unauthorized: Invalid token' });
     }
 
     // Attach user info to request for further use
@@ -34,16 +34,11 @@ export class AuthMiddleware {
     return (req: Request, res: Response, next: NextFunction) => {
       const user = (req as any).user;
 
-      if (!user || !user.role || !allowedRoles.includes(user.role)) {
+      if (!user || !allowedRoles.includes(user.role)) {
         return res.status(403).json({ message: 'Access denied' });
       }
 
       next();
     };
   }
-
-  /**
-   * Protect routes that require authentication
-   */
-  static protectedRoute = this.verifyToken;
 }

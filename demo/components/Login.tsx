@@ -3,7 +3,7 @@ import { AuthService } from '../../lib/services/authService';
 import { LoginCredentials } from '../../lib/types';
 
 interface LoginProps {
-  onLoginSuccess?: () => void;
+  onLoginSuccess?: (token: string) => void;
 }
 
 export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
@@ -13,60 +13,48 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   });
   const [error, setError] = useState<string | null>(null);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setCredentials(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
     try {
       const authState = await AuthService.login(credentials);
-      
-      // Optional callback for successful login
-      onLoginSuccess?.();
 
-      // You might want to update app-wide state or redirect here
-      console.log('Logged in successfully', authState);
+      if (authState) {
+        // Store token in localStorage
+        localStorage.setItem('token', authState.token || '');
+        localStorage.setItem('refreshToken', authState.token || '');
+
+        // Optional callback for parent component
+        if (onLoginSuccess && authState.token) {
+          onLoginSuccess(authState.token);
+        }
+      } else {
+        setError('Invalid credentials');
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError('Login failed');
     }
   };
 
   return (
-    <div className="login-container">
-      <form onSubmit={handleSubmit}>
-        <h2>Login</h2>
-        {error && <div className="error-message">{error}</div>}
-        <div>
-          <label htmlFor="email">Email:</label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={credentials.email}
-            onChange={handleInputChange}
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor="password">Password:</label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            value={credentials.password}
-            onChange={handleInputChange}
-            required
-          />
-        </div>
-        <button type="submit">Login</button>
-      </form>
-    </div>
+    <form onSubmit={handleLogin}>
+      <input
+        type="email"
+        placeholder="Email"
+        value={credentials.email}
+        onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
+        required
+      />
+      <input
+        type="password"
+        placeholder="Password"
+        value={credentials.password}
+        onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
+        required
+      />
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+      <button type="submit">Login</button>
+    </form>
   );
 };
