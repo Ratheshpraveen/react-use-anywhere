@@ -7,43 +7,14 @@ const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || 'your_refresh_t
 const REFRESH_TOKEN_EXPIRATION = process.env.REFRESH_TOKEN_EXPIRATION || '7d';
 
 export class JWTService {
-  /**
-   * Generate an access token for a user
-   * @param userId User's unique identifier
-   * @param email User's email
-   * @param role Optional user role
-   * @returns JWT access token
-   */
-  static generateAccessToken(userId: string, email: string, role?: string): string {
-    const payload: CustomJWTPayload = {
-      userId,
-      email,
-      role,
-    };
-
+  static generateAccessToken(payload: { userId: string; email: string; role?: string }): string {
     return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRATION });
   }
 
-  /**
-   * Generate a refresh token for a user
-   * @param userId User's unique identifier
-   * @param email User's email
-   * @returns JWT refresh token
-   */
-  static generateRefreshToken(userId: string, email: string): string {
-    const payload: CustomJWTPayload = {
-      userId,
-      email,
-    };
-
+  static generateRefreshToken(payload: { userId: string; email: string; role?: string }): string {
     return jwt.sign(payload, REFRESH_TOKEN_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRATION });
   }
 
-  /**
-   * Verify and decode an access token
-   * @param token JWT access token
-   * @returns Decoded token payload or null
-   */
   static verifyAccessToken(token: string): CustomJWTPayload | null {
     try {
       return jwt.verify(token, JWT_SECRET) as CustomJWTPayload;
@@ -52,11 +23,6 @@ export class JWTService {
     }
   }
 
-  /**
-   * Verify and decode a refresh token
-   * @param token JWT refresh token
-   * @returns Decoded token payload or null
-   */
   static verifyRefreshToken(token: string): CustomJWTPayload | null {
     try {
       return jwt.verify(token, REFRESH_TOKEN_SECRET) as CustomJWTPayload;
@@ -65,18 +31,14 @@ export class JWTService {
     }
   }
 
-  /**
-   * Refresh access token using a valid refresh token
-   * @param refreshToken Existing refresh token
-   * @returns New access token or null
-   */
   static refreshAccessToken(refreshToken: string): string | null {
     const decoded = this.verifyRefreshToken(refreshToken);
-    
-    if (decoded) {
-      return this.generateAccessToken(decoded.userId, decoded.email, decoded.role);
-    }
+    if (!decoded) return null;
 
-    return null;
+    return this.generateAccessToken({
+      userId: decoded.userId,
+      email: decoded.email,
+      role: decoded.role
+    });
   }
 }
