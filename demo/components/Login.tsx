@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { AuthService } from '../../lib/services/authService';
+import AuthService from '../../lib/services/authService';
 import { LoginCredentials } from '../../lib/types';
 
-export const Login: React.FC = () => {
+const Login: React.FC = () => {
   const [credentials, setCredentials] = useState<LoginCredentials>({
     email: '',
     password: ''
@@ -14,41 +14,55 @@ export const Login: React.FC = () => {
     setError(null);
 
     try {
-      const tokenResponse = await AuthService.login(credentials);
+      const { accessToken, refreshToken, user } = await AuthService.login(credentials);
+      
+      // Store tokens in local storage
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('refreshToken', refreshToken);
+      
+      // Store user info (optional)
+      localStorage.setItem('user', JSON.stringify(user));
 
-      if (tokenResponse) {
-        // Store tokens in local storage
-        localStorage.setItem('accessToken', tokenResponse.accessToken);
-        localStorage.setItem('refreshToken', tokenResponse.refreshToken);
-        
-        // Redirect or update app state
-        console.log('Login successful');
-      } else {
-        setError('Invalid credentials');
-      }
+      // Redirect or update app state
+      console.log('Login successful', user);
     } catch (err) {
-      setError('Login failed');
+      setError(err instanceof Error ? err.message : 'Login failed');
     }
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setCredentials(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
   return (
-    <form onSubmit={handleLogin}>
-      <input
-        type="email"
-        placeholder="Email"
-        value={credentials.email}
-        onChange={(e) => setCredentials({...credentials, email: e.target.value})}
-        required
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        value={credentials.password}
-        onChange={(e) => setCredentials({...credentials, password: e.target.value})}
-        required
-      />
-      {error && <p style={{color: 'red'}}>{error}</p>}
-      <button type="submit">Login</button>
-    </form>
+    <div>
+      <h2>Login</h2>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+      <form onSubmit={handleLogin}>
+        <input
+          type="email"
+          name="email"
+          placeholder="Email"
+          value={credentials.email}
+          onChange={handleInputChange}
+          required
+        />
+        <input
+          type="password"
+          name="password"
+          placeholder="Password"
+          value={credentials.password}
+          onChange={handleInputChange}
+          required
+        />
+        <button type="submit">Login</button>
+      </form>
+    </div>
   );
 };
+
+export default Login;
