@@ -21,7 +21,7 @@ export interface LoginCredentials {
   password: string;
 }
 
-export interface RegisterCredentials extends LoginCredentials {
-  name?: string;
-  role?: string;
+export interface TokenResponse {
+  accessToken: string;
+  refreshToken: string;
 }
