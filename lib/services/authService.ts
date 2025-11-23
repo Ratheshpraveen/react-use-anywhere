@@ -1,36 +1,26 @@
-import { LoginCredentials, RegisterCredentials, CustomJWTPayload } from '../types';
-import JWTService from './jwtService';
+import { LoginCredentials, RegisterCredentials, AuthState } from '../types';
+import { JWTService } from './jwtService';
 
-class AuthService {
-  // Simulated user database (replace with actual database in real implementation)
-  private static users = [
-    { id: '1', email: 'user@example.com', password: 'password123', role: 'user' }
-  ];
+export class AuthService {
+  private static users: { [email: string]: { id: string; email: string; password: string; role?: string } } = {};
 
-  static async login(credentials: LoginCredentials) {
-    // Simulate user authentication (replace with actual authentication logic)
-    const user = this.users.find(u => 
-      u.email === credentials.email && u.password === credentials.password
-    );
+  static async login(credentials: LoginCredentials): Promise<AuthState> {
+    // Simulated user lookup (replace with actual database logic)
+    const user = Object.values(this.users).find(u => u.email === credentials.email && u.password === credentials.password);
 
     if (!user) {
       throw new Error('Invalid credentials');
     }
 
-    // Create JWT payload
-    const payload: CustomJWTPayload = {
+    const token = JWTService.generateToken({
       userId: user.id,
       email: user.email,
       role: user.role
-    };
-
-    // Generate tokens
-    const accessToken = JWTService.generateAccessToken(payload);
-    const refreshToken = JWTService.generateRefreshToken(payload);
+    });
 
     return {
-      accessToken,
-      refreshToken,
+      isAuthenticated: true,
+      token,
       user: {
         id: user.id,
         email: user.email,
@@ -39,69 +29,62 @@ class AuthService {
     };
   }
 
-  static async register(credentials: RegisterCredentials) {
-    // Simulate user registration (replace with actual registration logic)
-    const existingUser = this.users.find(u => u.email === credentials.email);
-    
-    if (existingUser) {
+  static async register(credentials: RegisterCredentials): Promise<AuthState> {
+    // Check if user already exists
+    if (Object.values(this.users).some(u => u.email === credentials.email)) {
       throw new Error('User already exists');
     }
 
-    const newUser = {
-      id: String(this.users.length + 1),
+    // Generate unique ID (replace with actual ID generation)
+    const userId = Date.now().toString();
+
+    // Store user (replace with actual database logic)
+    this.users[credentials.email] = {
+      id: userId,
       email: credentials.email,
       password: credentials.password,
-      role: credentials.role || 'user'
+      role: credentials.role
     };
 
-    this.users.push(newUser);
-
-    // Create JWT payload
-    const payload: CustomJWTPayload = {
-      userId: newUser.id,
-      email: newUser.email,
-      role: newUser.role
-    };
-
-    // Generate tokens
-    const accessToken = JWTService.generateAccessToken(payload);
-    const refreshToken = JWTService.generateRefreshToken(payload);
+    // Generate token
+    const token = JWTService.generateToken({
+      userId,
+      email: credentials.email,
+      role: credentials.role
+    });
 
     return {
-      accessToken,
-      refreshToken,
+      isAuthenticated: true,
+      token,
       user: {
-        id: newUser.id,
-        email: newUser.email,
-        role: newUser.role
+        id: userId,
+        email: credentials.email,
+        role: credentials.role
       }
     };
   }
 
-  static async refreshTokens(refreshToken: string) {
-    // Verify refresh token
-    const decoded = JWTService.verifyRefreshToken(refreshToken);
+  static async refreshAuth(currentToken: string): Promise<AuthState | null> {
+    const newToken = JWTService.refreshToken(currentToken);
+    
+    if (!newToken) return null;
 
-    if (!decoded) {
-      throw new Error('Invalid refresh token');
-    }
-
-    // Create new payload
-    const payload: CustomJWTPayload = {
-      userId: decoded.userId,
-      email: decoded.email,
-      role: decoded.role
-    };
-
-    // Generate new tokens
-    const newAccessToken = JWTService.generateAccessToken(payload);
-    const newRefreshToken = JWTService.generateRefreshToken(payload);
+    const decoded = JWTService.verifyToken(newToken);
+    
+    if (!decoded) return null;
 
     return {
-      accessToken: newAccessToken,
-      refreshToken: newRefreshToken
+      isAuthenticated: true,
+      token: newToken,
+      user: {
+        id: decoded.userId,
+        email: decoded.email,
+        role: decoded.role
+      }
     };
   }
-}
 
-export default AuthService;
+  static logout(): void {
+    // Implement logout logic (e.g., clear tokens, reset state)
+  }
+}
