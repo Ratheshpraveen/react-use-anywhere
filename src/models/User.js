@@ -1,39 +1,38 @@
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { JWT_SECRET, TOKEN_EXPIRATION } = require('../config/jwtConfig');
+const { JWT_SECRET, JWT_EXPIRATION } = require('../config/environment');
 
 class User {
-  constructor(username, password, email) {
+  constructor(username, email, password) {
     this.username = username;
-    this.password = password;
     this.email = email;
+    this.password = this.hashPassword(password);
   }
 
-  // Hash password before saving
-  async hashPassword() {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
+  // Hash password using bcrypt
+  hashPassword(password) {
+    const saltRounds = 10;
+    return bcrypt.hashSync(password, saltRounds);
   }
 
-  // Compare provided password with stored hash
-  async comparePassword(candidatePassword) {
-    return await bcrypt.compare(candidatePassword, this.password);
+  // Compare password for login
+  comparePassword(inputPassword) {
+    return bcrypt.compareSync(inputPassword, this.password);
   }
 
   // Generate JWT token
   generateToken() {
     return jwt.sign(
       { 
-        id: this.id, 
         username: this.username, 
         email: this.email 
       }, 
       JWT_SECRET, 
-      { expiresIn: TOKEN_EXPIRATION }
+      { expiresIn: JWT_EXPIRATION }
     );
   }
 
-  // Static method to verify token
+  // Static method to verify JWT token
   static verifyToken(token) {
     try {
       return jwt.verify(token, JWT_SECRET);

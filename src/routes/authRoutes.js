@@ -3,62 +3,48 @@ const User = require('../models/User');
 
 const router = express.Router();
 
+// Mock user storage (replace with database in real implementation)
+const users = [];
+
 // Registration endpoint
-router.post('/register', async (req, res) => {
-  try {
-    const { username, password, email } = req.body;
-    
-    // Create new user
-    const user = new User(username, password, email);
-    
-    // Hash password
-    await user.hashPassword();
-    
-    // Save user (in a real app, this would interact with a database)
-    // For this example, we'll just generate a token
-    const token = user.generateToken();
-    
-    res.status(201).json({ 
-      message: 'User registered successfully', 
-      token 
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      message: 'Registration failed', 
-      error: error.message 
-    });
+router.post('/register', (req, res) => {
+  const { username, email, password } = req.body;
+
+  // Check if user already exists
+  const existingUser = users.find(u => u.email === email);
+  if (existingUser) {
+    return res.status(400).json({ error: 'User already exists' });
   }
+
+  // Create new user
+  const newUser = new User(username, email, password);
+  users.push(newUser);
+
+  res.status(201).json({ 
+    message: 'User registered successfully',
+    username: newUser.username,
+    email: newUser.email 
+  });
 });
 
 // Login endpoint
-router.post('/login', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    
-    // In a real app, you'd fetch the user from a database
-    // For this example, we'll simulate user lookup
-    const user = new User(username, password);
-    
-    // Check password (in a real app, you'd fetch the stored hash from DB)
-    const isMatch = await user.comparePassword(password);
-    
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-    
-    // Generate token
-    const token = user.generateToken();
-    
-    res.json({ 
-      message: 'Login successful', 
-      token 
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      message: 'Login failed', 
-      error: error.message 
-    });
+router.post('/login', (req, res) => {
+  const { email, password } = req.body;
+
+  // Find user by email
+  const user = users.find(u => u.email === email);
+  
+  if (!user || !user.comparePassword(password)) {
+    return res.status(401).json({ error: 'Invalid credentials' });
   }
+
+  // Generate token
+  const token = user.generateToken();
+
+  res.json({ 
+    message: 'Login successful', 
+    token 
+  });
 });
 
 module.exports = router;
