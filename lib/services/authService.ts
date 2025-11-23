@@ -1,93 +1,96 @@
-import { LoginCredentials, RegisterCredentials } from '../types';
-import { JWTService } from './jwtService';
+import { LoginCredentials, RegisterCredentials, AuthState } from '../types';
+import JWTService from './jwtService';
 
-// Mock user database (replace with actual database in production)
-const USERS = [
-  { id: '1', email: 'user@example.com', password: 'password123', role: 'user' }
-];
+class AuthService {
+  private static authState: AuthState = {
+    isAuthenticated: false,
+    token: null,
+    user: null
+  };
 
-export class AuthService {
-  static async login(credentials: LoginCredentials) {
-    // Find user by email and validate password
-    const user = USERS.find(u => u.email === credentials.email && u.password === credentials.password);
-    
-    if (!user) {
-      throw new Error('Invalid credentials');
+  static async login(credentials: LoginCredentials): Promise<AuthState> {
+    try {
+      // TODO: Replace with actual backend authentication logic
+      const mockUser = {
+        id: 'mock-user-id',
+        email: credentials.email,
+        role: 'user'
+      };
+
+      const token = JWTService.generateToken({
+        userId: mockUser.id,
+        email: mockUser.email,
+        role: mockUser.role
+      });
+
+      this.authState = {
+        isAuthenticated: true,
+        token,
+        user: mockUser
+      };
+
+      return this.authState;
+    } catch (error) {
+      this.logout();
+      throw error;
     }
+  }
 
-    // Generate tokens
-    const accessToken = JWTService.generateAccessToken({
-      userId: user.id,
-      email: user.email,
-      role: user.role
-    });
+  static async register(credentials: RegisterCredentials): Promise<AuthState> {
+    try {
+      // TODO: Replace with actual backend registration logic
+      const mockUser = {
+        id: 'mock-user-id',
+        email: credentials.email,
+        role: credentials.role || 'user'
+      };
 
-    const refreshToken = JWTService.generateRefreshToken({
-      userId: user.id,
-      email: user.email,
-      role: user.role
-    });
+      const token = JWTService.generateToken({
+        userId: mockUser.id,
+        email: mockUser.email,
+        role: mockUser.role
+      });
 
-    return {
-      accessToken,
-      refreshToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role
-      }
+      this.authState = {
+        isAuthenticated: true,
+        token,
+        user: mockUser
+      };
+
+      return this.authState;
+    } catch (error) {
+      this.logout();
+      throw error;
+    }
+  }
+
+  static logout(): void {
+    this.authState = {
+      isAuthenticated: false,
+      token: null,
+      user: null
     };
   }
 
-  static async register(credentials: RegisterCredentials) {
-    // Check if user already exists
-    const existingUser = USERS.find(u => u.email === credentials.email);
-    
-    if (existingUser) {
-      throw new Error('User already exists');
-    }
-
-    // Create new user (mock implementation)
-    const newUser = {
-      id: String(USERS.length + 1),
-      email: credentials.email,
-      password: credentials.password,
-      role: credentials.role || 'user'
-    };
-
-    USERS.push(newUser);
-
-    // Generate tokens
-    const accessToken = JWTService.generateAccessToken({
-      userId: newUser.id,
-      email: newUser.email,
-      role: newUser.role
-    });
-
-    const refreshToken = JWTService.generateRefreshToken({
-      userId: newUser.id,
-      email: newUser.email,
-      role: newUser.role
-    });
-
-    return {
-      accessToken,
-      refreshToken,
-      user: {
-        id: newUser.id,
-        email: newUser.email,
-        role: newUser.role
-      }
-    };
+  static getCurrentAuthState(): AuthState {
+    return { ...this.authState };
   }
 
-  static async refreshTokens(refreshToken: string) {
-    const newAccessToken = JWTService.refreshAccessToken(refreshToken);
-    
-    if (!newAccessToken) {
-      throw new Error('Invalid refresh token');
-    }
+  static isTokenValid(token?: string | null): boolean {
+    if (!token) return false;
+    return !!JWTService.verifyToken(token);
+  }
 
-    return { accessToken: newAccessToken };
+  static refreshToken(): string | null {
+    const currentToken = this.authState.token;
+    if (!currentToken) return null;
+
+    const newToken = JWTService.refreshToken(currentToken);
+    if (newToken) {
+      this.authState.token = newToken;
+    }
+    return newToken;
   }
 }
+
+export default AuthService;

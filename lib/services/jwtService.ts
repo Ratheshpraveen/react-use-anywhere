@@ -1,44 +1,32 @@
 import jwt from 'jsonwebtoken';
 import { CustomJWTPayload } from '../types';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_default_secret_key';
-const JWT_EXPIRATION = process.env.JWT_EXPIRATION || '1h';
-const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || 'your_refresh_token_secret';
-const REFRESH_TOKEN_EXPIRATION = process.env.REFRESH_TOKEN_EXPIRATION || '7d';
+class JWTService {
+  private static SECRET_KEY = process.env.JWT_SECRET || 'fallback_secret_key';
+  private static EXPIRATION = '1h';
 
-export class JWTService {
-  static generateAccessToken(payload: { userId: string; email: string; role?: string }): string {
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRATION });
+  static generateToken(payload: { userId: string; email: string; role?: string }): string {
+    return jwt.sign(payload, this.SECRET_KEY, { expiresIn: this.EXPIRATION });
   }
 
-  static generateRefreshToken(payload: { userId: string; email: string; role?: string }): string {
-    return jwt.sign(payload, REFRESH_TOKEN_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRATION });
-  }
-
-  static verifyAccessToken(token: string): CustomJWTPayload | null {
+  static verifyToken(token: string): CustomJWTPayload | null {
     try {
-      return jwt.verify(token, JWT_SECRET) as CustomJWTPayload;
+      return jwt.verify(token, this.SECRET_KEY) as CustomJWTPayload;
     } catch (error) {
       return null;
     }
   }
 
-  static verifyRefreshToken(token: string): CustomJWTPayload | null {
+  static refreshToken(token: string): string | null {
     try {
-      return jwt.verify(token, REFRESH_TOKEN_SECRET) as CustomJWTPayload;
+      const decoded = this.verifyToken(token);
+      if (!decoded) return null;
+
+      // Remove exp and iat for new token generation
+      const { exp, iat, ...payload } = decoded;
+      return this.generateToken(payload);
     } catch (error) {
       return null;
     }
-  }
-
-  static refreshAccessToken(refreshToken: string): string | null {
-    const decoded = this.verifyRefreshToken(refreshToken);
-    if (!decoded) return null;
-
-    return this.generateAccessToken({
-      userId: decoded.userId,
-      email: decoded.email,
-      role: decoded.role
-    });
   }
 }

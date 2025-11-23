@@ -1,65 +1,60 @@
 import React, { useState } from 'react';
-import { AuthService } from '../../lib/services/authService';
+import AuthService from '../../lib/services/authService';
+import { LoginCredentials } from '../../lib/types';
 
-interface LoginProps {
-  onLoginSuccess?: (userData: {
-    accessToken: string;
-    refreshToken: string;
-    user: {
-      id: string;
-      email: string;
-      role?: string;
-    }
-  }) => void;
-}
-
-export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+const Login: React.FC = () => {
+  const [credentials, setCredentials] = useState<LoginCredentials>({
+    email: '',
+    password: ''
+  });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-
     try {
-      const loginResult = await AuthService.login({ email, password });
+      const authState = await AuthService.login(credentials);
       
-      // Store tokens in local storage
-      localStorage.setItem('accessToken', loginResult.accessToken);
-      localStorage.setItem('refreshToken', loginResult.refreshToken);
+      // Store token in localStorage for persistence
+      if (authState.token) {
+        localStorage.setItem('authToken', authState.token);
+      }
 
-      // Call success callback if provided
-      onLoginSuccess?.(loginResult);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      // Redirect or update app state based on successful login
+      console.log('Logged in successfully', authState);
+    } catch (error) {
+      console.error('Login failed', error);
+      // Handle login error (show message, etc.)
     }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setCredentials(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   return (
     <form onSubmit={handleLogin}>
-      <div>
-        <label htmlFor="email">Email:</label>
-        <input
-          type="email"
-          id="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-      </div>
-      <div>
-        <label htmlFor="password">Password:</label>
-        <input
-          type="password"
-          id="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-      </div>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      <input
+        type="email"
+        name="email"
+        placeholder="Email"
+        value={credentials.email}
+        onChange={handleInputChange}
+        required
+      />
+      <input
+        type="password"
+        name="password"
+        placeholder="Password"
+        value={credentials.password}
+        onChange={handleInputChange}
+        required
+      />
       <button type="submit">Login</button>
     </form>
   );
 };
+
+export default Login;
