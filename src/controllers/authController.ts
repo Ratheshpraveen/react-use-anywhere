@@ -2,8 +2,8 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import { generateToken } from '../middleware/authMiddleware';
 
-// Mock user database (replace with actual database in production)
-const users: { [key: string]: { id: number, username: string, password: string } } = {};
+// In a real app, this would be a database
+const users: {[key: string]: {password: string, id: string}} = {};
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -19,18 +19,19 @@ export const register = async (req: Request, res: Response) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Create user
-    const newUser = {
-      id: Object.keys(users).length + 1,
-      username,
-      password: hashedPassword
+    const userId = Date.now().toString(); // Simple unique ID generation
+    users[username] = {
+      password: hashedPassword,
+      id: userId
     };
 
-    users[username] = newUser;
-
     // Generate token
-    const token = generateToken({ id: newUser.id, username });
+    const token = generateToken({ id: userId, username });
 
-    res.status(201).json({ token, user: { id: newUser.id, username } });
+    res.status(201).json({ 
+      token, 
+      user: { id: userId, username } 
+    });
   } catch (error) {
     res.status(500).json({ error: 'Server error during registration' });
   }
@@ -55,7 +56,10 @@ export const login = async (req: Request, res: Response) => {
     // Generate token
     const token = generateToken({ id: user.id, username });
 
-    res.json({ token, user: { id: user.id, username } });
+    res.json({ 
+      token, 
+      user: { id: user.id, username } 
+    });
   } catch (error) {
     res.status(500).json({ error: 'Server error during login' });
   }
@@ -63,15 +67,10 @@ export const login = async (req: Request, res: Response) => {
 
 export const refreshToken = (req: Request, res: Response) => {
   try {
-    const { username } = req.body;
-    const user = users[username];
-
-    if (!user) {
-      return res.status(400).json({ error: 'User not found' });
-    }
-
+    const { username, id } = req.body;
+    
     // Generate new token
-    const token = generateToken({ id: user.id, username });
+    const token = generateToken({ id, username });
 
     res.json({ token });
   } catch (error) {

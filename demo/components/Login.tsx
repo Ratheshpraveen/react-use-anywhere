@@ -12,41 +12,49 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+
     try {
-      const response = await axios.post('/api/auth/login', { username, password });
-      const { token } = response.data;
-      
-      // Store token in localStorage
-      localStorage.setItem('token', token);
-      
-      // Optional: Call callback for parent component
-      onLoginSuccess?.(token);
-      
-      setError('');
-    } catch (err) {
-      setError('Login failed. Please check your credentials.');
-      console.error(err);
+      const response = await axios.post('/api/auth/login', { 
+        username, 
+        password 
+      });
+
+      // Store the token in localStorage
+      localStorage.setItem('token', response.data.token);
+
+      // Call the success callback if provided
+      onLoginSuccess?.(response.data.token);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Login failed');
     }
   };
 
   return (
     <div>
+      <h2>Login</h2>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
       <form onSubmit={handleLogin}>
-        <input 
-          type="text" 
-          placeholder="Username" 
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
-        <input 
-          type="password" 
-          placeholder="Password" 
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <div>
+          <label>Username:</label>
+          <input 
+            type="text" 
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required 
+          />
+        </div>
+        <div>
+          <label>Password:</label>
+          <input 
+            type="password" 
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required 
+          />
+        </div>
         <button type="submit">Login</button>
       </form>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
     </div>
   );
 };
