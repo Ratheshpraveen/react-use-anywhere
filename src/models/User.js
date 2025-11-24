@@ -1,50 +1,46 @@
-import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import authConfig from '../config/auth.config.js';
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
-const UserSchema = new mongoose.Schema({
-  username: { 
-    type: String, 
-    required: true, 
-    unique: true 
-  },
-  email: { 
-    type: String, 
-    required: true, 
-    unique: true 
-  },
-  password: { 
-    type: String, 
-    required: true 
+class User {
+  constructor(username, password, email) {
+    this.username = username;
+    this.password = password;
+    this.email = email;
   }
-}, { timestamps: true });
 
-// Hash password before saving
-UserSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  
-  try {
+  // Hash password before saving
+  async hashPassword() {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error);
   }
-});
 
-// Method to check password
-UserSchema.methods.comparePassword = async function(candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password);
-};
+  // Compare password for login
+  async comparePassword(candidatePassword) {
+    return await bcrypt.compare(candidatePassword, this.password);
+  }
 
-// Method to generate JWT token
-UserSchema.methods.generateAuthToken = function() {
-  return jwt.sign(
-    { id: this._id }, 
-    authConfig.JWT_SECRET, 
-    { expiresIn: authConfig.JWT_EXPIRATION }
-  );
-};
+  // Generate JWT token
+  generateToken() {
+    return jwt.sign(
+      { 
+        id: this.username, 
+        email: this.email 
+      }, 
+      process.env.JWT_SECRET, 
+      { 
+        expiresIn: process.env.JWT_EXPIRATION 
+      }
+    );
+  }
 
-export default mongoose.model('User', UserSchema);
+  // Static method to verify token
+  static verifyToken(token) {
+    try {
+      return jwt.verify(token, process.env.JWT_SECRET);
+    } catch (error) {
+      return null;
+    }
+  }
+}
+
+module.exports = User;

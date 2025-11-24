@@ -1,22 +1,27 @@
-import jwt from 'jsonwebtoken';
-import authConfig from '../config/auth.config.js';
+const User = require('../models/User');
 
-export const verifyToken = (req, res, next) => {
-  const token = req.headers['authorization']?.split(' ')[1]; // Bearer TOKEN
+const authMiddleware = async (req, res, next) => {
+  // Get token from header
+  const token = req.header('Authorization')?.replace('Bearer ', '');
 
   if (!token) {
-    return res.status(403).json({ message: 'No token provided' });
+    return res.status(401).json({ error: 'No token, authorization denied' });
   }
 
   try {
-    const decoded = jwt.verify(token, authConfig.JWT_SECRET);
-    req.userId = decoded.id;
+    // Verify token
+    const decoded = User.verifyToken(token);
+
+    if (!decoded) {
+      return res.status(401).json({ error: 'Token is not valid' });
+    }
+
+    // Attach user to request object
+    req.user = decoded;
     next();
-  } catch (err) {
-    return res.status(401).json({ message: 'Unauthorized' });
+  } catch (error) {
+    res.status(401).json({ error: 'Token is not valid' });
   }
 };
 
-export const protectedRoute = (req, res, next) => {
-  verifyToken(req, res, next);
-};
+module.exports = authMiddleware;
