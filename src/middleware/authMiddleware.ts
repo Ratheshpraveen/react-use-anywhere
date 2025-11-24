@@ -1,40 +1,34 @@
-import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
+import { verifyToken } from '../utils/tokenUtils';
 
-interface TokenPayload {
-  userId: string;
-  iat: number;
-  exp: number;
-}
+export const authenticateJWT = (req: Request, res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
 
-export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  const token = req.header('Authorization')?.replace('Bearer ', '');
-
-  if (!token) {
+  if (!authHeader) {
     return res.status(401).json({ error: 'No token provided' });
   }
 
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as TokenPayload;
-    (req as any).user = { id: decoded.userId };
-    next();
-  } catch (error) {
-    res.status(401).json({ error: 'Invalid or expired token' });
+  const token = authHeader.split(' ')[1]; // Bearer TOKEN
+
+  const decoded = verifyToken(token);
+
+  if (!decoded) {
+    return res.status(403).json({ error: 'Invalid or expired token' });
   }
+
+  // Attach user information to the request
+  req.user = decoded;
+  next();
 };
 
-export const refreshTokenMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  const refreshToken = req.body.refreshToken;
+export const requireRole = (roles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const user = req.user;
 
-  if (!refreshToken) {
-    return res.status(401).json({ error: 'Refresh token required' });
-  }
+    if (!user || !user.role || !roles.includes(user.role)) {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
 
-  try {
-    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET!) as TokenPayload;
-    (req as any).user = { id: decoded.userId };
     next();
-  } catch (error) {
-    res.status(401).json({ error: 'Invalid refresh token' });
-  }
+  };
 };
