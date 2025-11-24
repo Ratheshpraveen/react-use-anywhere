@@ -1,93 +1,105 @@
 import { Request, Response } from 'express';
-import bcrypt from 'bcrypt';
-import { generateToken } from '../middleware/authMiddleware';
+import { User, IUser } from '../models/User';
+import jwt from 'jsonwebtoken';
 
-// Mock user database (replace with your actual database logic)
-const users = [
-  {
-    id: '1',
-    username: 'testuser',
-    password: '$2b$10$XYZ123' // hashed password
+export const register = async (req: Request, res: Response) => {
+  try {
+    const { username, email, password } = req.body;
+
+    // Check if user already exists
+    let existingUser = await User.findOne({ $or: [{ email }, { username }] });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
+
+    // Create new user
+    const user = new User({ username, email, password });
+    await user.save();
+
+    // Generate tokens
+    const { accessToken, refreshToken } = user.generateTokens();
+
+    res.status(201).json({
+      message: 'User registered successfully',
+      user: { 
+        id: user._id, 
+        username: user.username, 
+        email: user.email 
+      },
+      tokens: { accessToken, refreshToken }
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
-];
+};
 
 export const login = async (req: Request, res: Response) => {
-  const { username, password } = req.body;
-
   try {
+    const { username, password } = req.body;
+
     // Find user
-    const user = users.find(u => u.username === username);
+    const user = await User.findOne({ username });
     if (!user) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+      return res.status(400).json({ message: 'Invalid credentials' });
     }
 
     // Check password
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+      return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    // Generate token
-    const token = generateToken({ id: user.id, username: user.username });
+    // Generate tokens
+    const { accessToken, refreshToken } = user.generateTokens();
 
-    res.json({ 
-      token, 
-      user: { id: user.id, username: user.username } 
+    res.json({
+      message: 'Login successful',
+      user: { 
+        id: user._id, 
+        username: user.username, 
+        email: user.email 
+      },
+      tokens: { accessToken, refreshToken }
     });
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
-export const register = async (req: Request, res: Response) => {
-  const { username, password } = req.body;
-
+export const refreshToken = async (req: Request, res: Response) => {
   try {
-    // Check if user already exists
-    const existingUser = users.find(u => u.username === username);
-    if (existingUser) {
-      return res.status(400).json({ error: 'User already exists' });
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(401).json({ message: 'Refresh token is required' });
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    // Verify refresh token
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET as string) as any;
 
-    // Create user (mock implementation)
-    const newUser = {
-      id: String(users.length + 1),
-      username,
-      password: hashedPassword
-    };
-    users.push(newUser);
+    // Find user
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
 
-    // Generate token
-    const token = generateToken({ id: newUser.id, username: newUser.username });
+    // Generate new tokens
+    const { 
+      accessToken: newAccessToken, 
+      refreshToken: newRefreshToken 
+    } = user.generateTokens();
 
-    res.status(201).json({ 
-      token, 
-      user: { id: newUser.id, username: newUser.username } 
+    res.json({
+      message: 'Tokens refreshed successfully',
+      tokens: { 
+        accessToken: newAccessToken, 
+        refreshToken: newRefreshToken 
+      }
     });
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
-};
-
-export const refreshToken = (req: Request, res: Response) => {
-  const { token } = req.body;
-
-  try {
-    // Verify existing token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
-    
-    // Generate new token
-    const newToken = generateToken({ 
-      id: decoded.id, 
-      username: decoded.username 
-    });
-
-    res.json({ token: newToken });
-  } catch (error) {
-    res.status(401).json({ error: 'Invalid token' });
+  } catch (error: any) {
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ message: 'Invalid refresh token' });
+    }
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
