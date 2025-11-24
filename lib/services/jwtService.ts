@@ -1,38 +1,32 @@
 import jwt from 'jsonwebtoken';
 import { CustomJWTPayload } from '../types';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_default_secret_key';
-const ACCESS_TOKEN_EXPIRY = '15m';
-const REFRESH_TOKEN_EXPIRY = '7d';
-
 export class JWTService {
-  static generateAccessToken(payload: Omit<CustomJWTPayload, 'exp'>): string {
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
-  }
+  private static SECRET_KEY = process.env.JWT_SECRET || 'your_default_secret_key';
+  private static EXPIRATION = '1h';
 
-  static generateRefreshToken(payload: Omit<CustomJWTPayload, 'exp'>): string {
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRY });
+  static generateToken(payload: { userId: string; email: string; role?: string }): string {
+    return jwt.sign(payload, this.SECRET_KEY, { expiresIn: this.EXPIRATION });
   }
 
   static verifyToken(token: string): CustomJWTPayload | null {
     try {
-      return jwt.verify(token, JWT_SECRET) as CustomJWTPayload;
+      return jwt.verify(token, this.SECRET_KEY) as CustomJWTPayload;
     } catch (error) {
-      console.error('Token verification failed:', error);
       return null;
     }
   }
 
-  static decodeToken(token: string): CustomJWTPayload | null {
-    return jwt.decode(token) as CustomJWTPayload | null;
-  }
+  static refreshToken(token: string): string | null {
+    try {
+      const decoded = this.verifyToken(token);
+      if (!decoded) return null;
 
-  static refreshAccessToken(refreshToken: string): string | null {
-    const decoded = this.verifyToken(refreshToken);
-    if (!decoded) return null;
-
-    // Create a new access token with the same payload
-    const { userId, email, role } = decoded;
-    return this.generateAccessToken({ userId, email, role });
+      // Remove exp and iat for new token generation
+      const { exp, iat, ...payload } = decoded;
+      return this.generateToken(payload);
+    } catch (error) {
+      return null;
+    }
   }
 }
