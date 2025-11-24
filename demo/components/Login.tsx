@@ -20,13 +20,14 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         password 
       });
 
-      // Store the token in localStorage
+      // Store token in localStorage
       localStorage.setItem('token', response.data.token);
 
-      // Call the success callback if provided
+      // Call optional success callback
       onLoginSuccess?.(response.data.token);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed');
+    } catch (err) {
+      setError('Login failed. Please check your credentials.');
+      console.error(err);
     }
   };
 
@@ -35,24 +36,20 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       <h2>Login</h2>
       {error && <p style={{ color: 'red' }}>{error}</p>}
       <form onSubmit={handleLogin}>
-        <div>
-          <label>Username:</label>
-          <input 
-            type="text" 
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required 
-          />
-        </div>
-        <div>
-          <label>Password:</label>
-          <input 
-            type="password" 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required 
-          />
-        </div>
+        <input 
+          type="text" 
+          placeholder="Username" 
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          required 
+        />
+        <input 
+          type="password" 
+          placeholder="Password" 
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required 
+        />
         <button type="submit">Login</button>
       </form>
     </div>
