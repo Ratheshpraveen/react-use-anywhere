@@ -1,11 +1,15 @@
 import express from 'express';
-import { register, login, refreshToken } from '../controllers/authController';
+import { login, register } from '../controllers/authController';
 import { authenticateJWT } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-router.post('/register', register);
 router.post('/login', login);
-router.post('/refresh-token', authenticateJWT, refreshToken);
+router.post('/register', register);
+
+// Example of a protected route
+router.get('/protected', authenticateJWT, (req, res) => {
+  res.json({ message: 'This is a protected route', user: req.user });
+});
 
 export default router;

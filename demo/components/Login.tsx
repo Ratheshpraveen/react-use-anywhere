@@ -1,59 +1,54 @@
 import React, { useState } from 'react';
-import { AuthService } from '../../lib/services/authService';
-import { LoginCredentials } from '../../lib/types';
+import axios from 'axios';
 
-export const Login: React.FC = () => {
-  const [credentials, setCredentials] = useState<LoginCredentials>({
-    email: '',
-    password: ''
-  });
-  const [error, setError] = useState<string | null>(null);
+interface LoginProps {
+  onLoginSuccess?: (token: string) => void;
+}
+
+const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const authState = await AuthService.login(credentials);
+      const response = await axios.post('/api/login', { username, password });
+      const { token } = response.data;
       
       // Store token in localStorage
-      if (authState.token) {
-        localStorage.setItem('authToken', authState.token);
-      }
-
-      // Additional login success logic (e.g., redirect, update app state)
-      console.log('Login successful', authState);
+      localStorage.setItem('jwt_token', token);
+      
+      // Call optional callback
+      onLoginSuccess?.(token);
+      
+      // Reset error
+      setError('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError('Invalid credentials');
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setCredentials(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
   return (
-    <form onSubmit={handleLogin}>
-      {error && <div style={{ color: 'red' }}>{error}</div>}
-      <input
-        type="email"
-        name="email"
-        placeholder="Email"
-        value={credentials.email}
-        onChange={handleInputChange}
-        required
-      />
-      <input
-        type="password"
-        name="password"
-        placeholder="Password"
-        value={credentials.password}
-        onChange={handleInputChange}
-        required
-      />
-      <button type="submit">Login</button>
-    </form>
+    <div>
+      <form onSubmit={handleLogin}>
+        <input 
+          type="text" 
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="Username"
+          required
+        />
+        <input 
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Password"
+          required
+        />
+        <button type="submit">Login</button>
+      </form>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+    </div>
   );
 };
