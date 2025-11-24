@@ -1,36 +1,36 @@
 import jwt from 'jsonwebtoken';
-import { authConfig } from '../config/authConfig';
+import { JWT_CONFIG } from '../config/authConfig';
 
-export interface TokenPayload {
-  userId: string;
+export interface UserPayload {
+  id: string;
   email: string;
   role?: string;
 }
 
-export const generateToken = (payload: TokenPayload): string => {
+export function generateToken(user: UserPayload): string {
   return jwt.sign(
-    {
-      sub: payload.userId,
-      email: payload.email,
-      role: payload.role,
-    },
-    authConfig.jwtSecret,
-    {
-      expiresIn: authConfig.jwtExpiration,
-      issuer: authConfig.jwtIssuer,
+    { 
+      sub: user.id, 
+      email: user.email,
+      role: user.role 
+    }, 
+    JWT_CONFIG.secret, 
+    { 
+      expiresIn: JWT_CONFIG.expiresIn,
+      issuer: JWT_CONFIG.issuer 
     }
   );
-};
+}
 
-export const verifyToken = (token: string): TokenPayload | null => {
+export function verifyToken(token: string): UserPayload | null {
   try {
-    const decoded = jwt.verify(token, authConfig.jwtSecret) as TokenPayload;
+    const decoded = jwt.verify(token, JWT_CONFIG.secret) as UserPayload;
     return {
-      userId: decoded.sub as string,
+      id: decoded.sub as string,
       email: decoded.email,
-      role: decoded.role,
+      role: decoded.role
     };
   } catch (error) {
     return null;
   }
-};
+}
