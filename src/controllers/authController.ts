@@ -1,66 +1,37 @@
 import { Request, Response } from 'express';
-import { validationResult } from 'express-validator';
-import jwt from 'jsonwebtoken';
 import { User, IUser } from '../models/User';
-import { 
-  generateAccessToken, 
-  generateRefreshToken, 
-  blacklistToken 
-} from '../middleware/authMiddleware';
-import { JWT_SECRET, REFRESH_TOKEN_COOKIE_OPTIONS } from '../config/jwtConfig';
 
-// Centralized error handling
-const handleError = (res: Response, error: any, defaultMessage = 'Server error') => {
-  console.error(error);
-  res.status(error.statusCode || 500).json({ 
-    error: error.message || defaultMessage 
-  });
-};
-
-export const register = async (req: Request, res: Response) => {
+export const registerUser = async (req: Request, res: Response) => {
   try {
-    // Validate input
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     const { username, email, password } = req.body;
 
     // Check if user already exists
-    let user = await User.findOne({ $or: [{ email }, { username }] });
-    if (user) {
+    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+    if (existingUser) {
       return res.status(400).json({ error: 'User already exists' });
     }
 
     // Create new user
-    user = new User({ username, email, password });
+    const user = new User({ username, email, password });
     await user.save();
 
     // Generate tokens
-    const accessToken = generateAccessToken(user._id.toString());
-    const refreshToken = generateRefreshToken(user._id.toString());
-
-    // Set refresh token as HTTP-only cookie
-    res.cookie('refreshToken', refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+    const token = user.generateAuthToken();
+    const refreshToken = user.generateRefreshToken();
 
     res.status(201).json({ 
       message: 'User registered successfully', 
-      accessToken
+      token, 
+      refreshToken,
+      user: { id: user._id, username: user.username, email: user.email } 
     });
-  } catch (error: any) {
-    handleError(res, error);
+  } catch (error) {
+    res.status(500).json({ error: 'Registration failed', details: error });
   }
 };
 
-export const login = async (req: Request, res: Response) => {
+export const loginUser = async (req: Request, res: Response) => {
   try {
-    // Validate input
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     const { email, password } = req.body;
 
     // Find user by email
@@ -76,61 +47,34 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Generate tokens
-    const accessToken = generateAccessToken(user._id.toString());
-    const refreshToken = generateRefreshToken(user._id.toString());
-
-    // Set refresh token as HTTP-only cookie
-    res.cookie('refreshToken', refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+    const token = user.generateAuthToken();
+    const refreshToken = user.generateRefreshToken();
 
     res.json({ 
       message: 'Login successful', 
-      accessToken 
+      token, 
+      refreshToken,
+      user: { id: user._id, username: user.username, email: user.email } 
     });
-  } catch (error: any) {
-    handleError(res, error);
+  } catch (error) {
+    res.status(500).json({ error: 'Login failed', details: error });
   }
 };
 
 export const refreshToken = async (req: Request, res: Response) => {
   try {
-    const refreshToken = req.cookies.refreshToken;
+    const userId = (req as any).user.id;
+    const user = await User.findById(userId);
 
-    if (!refreshToken) {
-      return res.status(401).json({ error: 'Refresh token required' });
-    }
-
-    // Verify refresh token
-    const decoded = jwt.verify(refreshToken, JWT_SECRET) as { userId: string };
-
-    // Check if user exists
-    const user = await User.findById(decoded.userId);
     if (!user) {
-      return res.status(401).json({ error: 'User not found' });
+      return res.status(404).json({ error: 'User not found' });
     }
 
     // Generate new access token
-    const newAccessToken = generateAccessToken(user._id.toString());
+    const newToken = user.generateAuthToken();
 
-    res.json({ accessToken: newAccessToken });
+    res.json({ token: newToken });
   } catch (error) {
-    res.status(401).json({ error: 'Invalid refresh token' });
-  }
-};
-
-export const logout = async (req: Request, res: Response) => {
-  try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    
-    // Blacklist the current access token
-    if (token) {
-      blacklistToken(token);
-    }
-
-    // Clear refresh token cookie
-    res.clearCookie('refreshToken');
-
-    res.json({ message: 'Logged out successfully' });
-  } catch (error: any) {
-    handleError(res, error);
+    res.status(500).json({ error: 'Token refresh failed', details: error });
   }
 };
