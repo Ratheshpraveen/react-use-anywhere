@@ -1,26 +1,22 @@
-const User = require('../models/User');
+import jwt from 'jsonwebtoken';
+import authConfig from '../config/auth.config.js';
 
-const authMiddleware = (req, res, next) => {
-  // Get the token from the Authorization header
-  const authHeader = req.headers.authorization;
-  
-  if (!authHeader) {
-    return res.status(401).json({ error: 'No token provided' });
+export const verifyToken = (req, res, next) => {
+  const token = req.headers['authorization']?.split(' ')[1]; // Bearer TOKEN
+
+  if (!token) {
+    return res.status(403).json({ message: 'No token provided' });
   }
 
-  // Extract the token (assuming "Bearer TOKEN" format)
-  const token = authHeader.split(' ')[1];
-
-  // Verify the token
-  const decoded = User.verifyToken(token);
-
-  if (!decoded) {
-    return res.status(401).json({ error: 'Invalid or expired token' });
+  try {
+    const decoded = jwt.verify(token, authConfig.JWT_SECRET);
+    req.userId = decoded.id;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: 'Unauthorized' });
   }
-
-  // Attach the user information to the request object
-  req.user = decoded;
-  next();
 };
 
-module.exports = authMiddleware;
+export const protectedRoute = (req, res, next) => {
+  verifyToken(req, res, next);
+};
