@@ -13,10 +13,16 @@ export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: N
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || '');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
     req.user = decoded;
     next();
   } catch (error) {
     res.status(401).json({ error: 'Token is not valid' });
   }
+};
+
+export const generateToken = (payload: any): string => {
+  return jwt.sign(payload, process.env.JWT_SECRET as string, {
+    expiresIn: process.env.JWT_EXPIRATION || '1h'
+  });
 };
