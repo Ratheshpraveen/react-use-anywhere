@@ -1,11 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-interface AuthenticatedRequest extends Request {
+interface AuthRequest extends Request {
   user?: any;
 }
 
-export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
   const token = req.header('Authorization')?.replace('Bearer ', '');
 
   if (!token) {
@@ -13,7 +13,7 @@ export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: N
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default_secret');
     req.user = decoded;
     next();
   } catch (error) {
@@ -22,7 +22,7 @@ export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: N
 };
 
 export const generateToken = (payload: any): string => {
-  return jwt.sign(payload, process.env.JWT_SECRET as string, {
-    expiresIn: process.env.JWT_EXPIRATION || '1h'
+  return jwt.sign(payload, process.env.JWT_SECRET || 'default_secret', { 
+    expiresIn: '1h' 
   });
 };
