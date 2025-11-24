@@ -9,5 +9,10 @@ module.exports = {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-  }
+  },
+  // Enhanced security configurations
+  JWT_ISSUER: 'react-use-anywhere-app',
+  JWT_AUDIENCE: 'react-use-anywhere-users',
+  // Recommended minimum salt rounds for bcrypt
+  SALT_ROUNDS: 12
 };
