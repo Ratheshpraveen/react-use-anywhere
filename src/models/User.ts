@@ -1,11 +1,13 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import { generateToken } from '../middleware/auth';
 
 export interface IUser extends mongoose.Document {
   username: string;
   email: string;
   password: string;
   comparePassword(candidatePassword: string): Promise<boolean>;
+  generateAuthToken(): string;
 }
 
 const UserSchema = new mongoose.Schema({
@@ -39,8 +41,21 @@ UserSchema.pre<IUser>('save', async function(next) {
 });
 
 // Method to compare passwords
-UserSchema.methods.comparePassword = async function(candidatePassword: string) {
+UserSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-export const User = mongoose.model<IUser>('User', UserSchema);
+// Method to generate JWT token
+UserSchema.methods.generateAuthToken = function(): string {
+  const payload = {
+    id: this._id,
+    username: this.username,
+    email: this.email
+  };
+  
+  return generateToken(payload);
+};
+
+const User = mongoose.model<IUser>('User', UserSchema);
+
+export default User;

@@ -9,26 +9,20 @@ export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: N
   const token = req.header('Authorization')?.replace('Bearer ', '');
 
   if (!token) {
-    return res.status(401).json({ message: 'No token, authorization denied' });
+    return res.status(401).json({ error: 'No token, authorization denied' });
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default_secret');
     req.user = decoded;
     next();
   } catch (error) {
-    res.status(401).json({ message: 'Token is not valid' });
+    res.status(401).json({ error: 'Token is not valid' });
   }
 };
 
-export const generateAccessToken = (payload: any) => {
-  return jwt.sign(payload, process.env.JWT_SECRET as string, {
-    expiresIn: process.env.JWT_EXPIRATION
-  });
-};
-
-export const generateRefreshToken = (payload: any) => {
-  return jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET as string, {
-    expiresIn: process.env.REFRESH_TOKEN_EXPIRATION
+export const generateToken = (payload: any): string => {
+  return jwt.sign(payload, process.env.JWT_SECRET || 'default_secret', {
+    expiresIn: process.env.JWT_EXPIRATION || '1h'
   });
 };
