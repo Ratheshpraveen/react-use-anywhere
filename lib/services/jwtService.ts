@@ -1,38 +1,53 @@
 import jwt from 'jsonwebtoken';
-import { CustomJWTPayload } from '../types';
+import { Request, Response, NextFunction } from 'express';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_default_secret_key';
-const ACCESS_TOKEN_EXPIRY = '15m';
-const REFRESH_TOKEN_EXPIRY = '7d';
+interface TokenPayload {
+  userId: string;
+  role: string;
+}
 
-export class JWTService {
-  static generateAccessToken(payload: Omit<CustomJWTPayload, 'exp'>): string {
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
+class JwtService {
+  private readonly JWT_SECRET: string;
+  private readonly JWT_EXPIRATION: string;
+  private readonly REFRESH_TOKEN_SECRET: string;
+
+  constructor() {
+    this.JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
+    this.JWT_EXPIRATION = process.env.JWT_EXPIRATION || '1h';
+    this.REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || 'fallback_refresh_secret';
   }
 
-  static generateRefreshToken(payload: Omit<CustomJWTPayload, 'exp'>): string {
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRY });
+  // Generate access token
+  generateAccessToken(payload: TokenPayload): string {
+    return jwt.sign(payload, this.JWT_SECRET, { 
+      expiresIn: this.JWT_EXPIRATION 
+    });
   }
 
-  static verifyToken(token: string): CustomJWTPayload | null {
+  // Generate refresh token
+  generateRefreshToken(payload: TokenPayload): string {
+    return jwt.sign(payload, this.REFRESH_TOKEN_SECRET, { 
+      expiresIn: '7d' 
+    });
+  }
+
+  // Verify access token
+  verifyAccessToken(token: string): TokenPayload | null {
     try {
-      return jwt.verify(token, JWT_SECRET) as CustomJWTPayload;
+      return jwt.verify(token, this.JWT_SECRET) as TokenPayload;
     } catch (error) {
-      console.error('Token verification failed:', error);
       return null;
     }
   }
 
-  static decodeToken(token: string): CustomJWTPayload | null {
-    return jwt.decode(token) as CustomJWTPayload | null;
-  }
-
-  static refreshAccessToken(refreshToken: string): string | null {
-    const decoded = this.verifyToken(refreshToken);
-    if (!decoded) return null;
-
-    // Create a new access token with the same payload
-    const { userId, email, role } = decoded;
-    return this.generateAccessToken({ userId, email, role });
+  // Verify refresh token
+  verifyRefreshToken(token: string): TokenPayload | null {
+    try {
+      return jwt.verify(token, this.REFRESH_TOKEN_SECRET) as TokenPayload;
+    } catch (error) {
+      return null;
+    }
   }
 }
+
+export default new JwtService();
