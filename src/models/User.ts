@@ -1,16 +1,17 @@
-import mongoose from 'mongoose';
+import mongoose, { Document, Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
-import { generateAccessToken, generateRefreshToken } from '../middleware/auth';
+import JwtService from '../../lib/services/jwtService';
 
-export interface IUser extends mongoose.Document {
+export interface IUser extends Document {
   username: string;
   email: string;
   password: string;
+  role: string;
   comparePassword(candidatePassword: string): Promise<boolean>;
-  generateTokens(): { accessToken: string; refreshToken: string };
+  generateAuthTokens(): { accessToken: string; refreshToken: string };
 }
 
-const UserSchema = new mongoose.Schema({
+const UserSchema: Schema = new Schema({
   username: { 
     type: String, 
     required: true, 
@@ -24,20 +25,19 @@ const UserSchema = new mongoose.Schema({
   password: { 
     type: String, 
     required: true 
+  },
+  role: { 
+    type: String, 
+    enum: ['user', 'admin'], 
+    default: 'user' 
   }
 });
 
 // Hash password before saving
 UserSchema.pre<IUser>('save', async function(next) {
   if (!this.isModified('password')) return next();
-  
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error: any) {
-    next(error);
-  }
+  this.password = await bcrypt.hash(this.password, 10);
+  next();
 });
 
 // Method to compare passwords
@@ -45,18 +45,18 @@ UserSchema.methods.comparePassword = async function(candidatePassword: string): 
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Method to generate tokens
-UserSchema.methods.generateTokens = function() {
+// Method to generate authentication tokens
+UserSchema.methods.generateAuthTokens = function() {
   const payload = {
-    id: this._id,
-    username: this.username,
-    email: this.email
+    userId: this._id,
+    role: this.role
   };
 
-  const accessToken = generateAccessToken(payload);
-  const refreshToken = generateRefreshToken(payload);
-
-  return { accessToken, refreshToken };
+  return {
+    accessToken: JwtService.generateAccessToken(payload),
+    refreshToken: JwtService.generateRefreshToken(payload)
+  };
 };
 
-export const User = mongoose.model<IUser>('User', UserSchema);
+const User = mongoose.model<IUser>('User', UserSchema);
+export default User;

@@ -1,32 +1,53 @@
 import jwt from 'jsonwebtoken';
-import { CustomJWTPayload } from '../types';
+import { Request, Response, NextFunction } from 'express';
 
-export class JWTService {
-  private static SECRET_KEY = process.env.JWT_SECRET || 'your_default_secret_key';
-  private static EXPIRATION = '1h';
+interface TokenPayload {
+  userId: string;
+  role: string;
+}
 
-  static generateToken(payload: { userId: string; email: string; role?: string }): string {
-    return jwt.sign(payload, this.SECRET_KEY, { expiresIn: this.EXPIRATION });
+class JwtService {
+  private readonly JWT_SECRET: string;
+  private readonly JWT_EXPIRATION: string;
+  private readonly REFRESH_TOKEN_SECRET: string;
+
+  constructor() {
+    this.JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
+    this.JWT_EXPIRATION = process.env.JWT_EXPIRATION || '1h';
+    this.REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || 'fallback_refresh_secret';
   }
 
-  static verifyToken(token: string): CustomJWTPayload | null {
+  // Generate access token
+  generateAccessToken(payload: TokenPayload): string {
+    return jwt.sign(payload, this.JWT_SECRET, { 
+      expiresIn: this.JWT_EXPIRATION 
+    });
+  }
+
+  // Generate refresh token
+  generateRefreshToken(payload: TokenPayload): string {
+    return jwt.sign(payload, this.REFRESH_TOKEN_SECRET, { 
+      expiresIn: '7d' 
+    });
+  }
+
+  // Verify access token
+  verifyAccessToken(token: string): TokenPayload | null {
     try {
-      return jwt.verify(token, this.SECRET_KEY) as CustomJWTPayload;
+      return jwt.verify(token, this.JWT_SECRET) as TokenPayload;
     } catch (error) {
       return null;
     }
   }
 
-  static refreshToken(token: string): string | null {
+  // Verify refresh token
+  verifyRefreshToken(token: string): TokenPayload | null {
     try {
-      const decoded = this.verifyToken(token);
-      if (!decoded) return null;
-
-      // Remove exp and iat for new token generation
-      const { exp, iat, ...payload } = decoded;
-      return this.generateToken(payload);
+      return jwt.verify(token, this.REFRESH_TOKEN_SECRET) as TokenPayload;
     } catch (error) {
       return null;
     }
   }
 }
+
+export default new JwtService();

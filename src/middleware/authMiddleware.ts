@@ -1,28 +1,39 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import JwtService from '../../lib/services/jwtService';
 
-interface AuthenticatedRequest extends Request {
-  user?: any;
-}
+class AuthMiddleware {
+  // Middleware to validate access token
+  authenticateToken(req: Request, res: Response, next: NextFunction) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
 
-export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
 
-  if (!token) {
-    return res.status(401).json({ error: 'No token, authorization denied' });
-  }
+    const decoded = JwtService.verifyAccessToken(token);
 
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+    if (!decoded) {
+      return res.status(403).json({ error: 'Invalid or expired token' });
+    }
+
+    // Attach user info to request
     req.user = decoded;
     next();
-  } catch (error) {
-    res.status(401).json({ error: 'Token is not valid' });
   }
-};
 
-export const generateToken = (payload: any): string => {
-  return jwt.sign(payload, process.env.JWT_SECRET as string, {
-    expiresIn: process.env.JWT_EXPIRATION || '1h'
-  });
-};
+  // Middleware for role-based access control
+  authorizeRole(allowedRoles: string[]) {
+    return (req: Request, res: Response, next: NextFunction) => {
+      const user = req.user;
+
+      if (!user || !allowedRoles.includes(user.role)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      next();
+    };
+  }
+}
+
+export default new AuthMiddleware();
