@@ -7,6 +7,7 @@ import {
   generateRefreshToken, 
   blacklistToken 
 } from '../middleware/authMiddleware';
+import { JWT_SECRET, REFRESH_TOKEN_COOKIE_OPTIONS } from '../config/jwtConfig';
 
 // Centralized error handling
 const handleError = (res: Response, error: any, defaultMessage = 'Server error') => {
@@ -40,10 +41,12 @@ export const register = async (req: Request, res: Response) => {
     const accessToken = generateAccessToken(user._id.toString());
     const refreshToken = generateRefreshToken(user._id.toString());
 
+    // Set refresh token as HTTP-only cookie
+    res.cookie('refreshToken', refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+
     res.status(201).json({ 
       message: 'User registered successfully', 
-      accessToken, 
-      refreshToken 
+      accessToken
     });
   } catch (error: any) {
     handleError(res, error);
@@ -60,26 +63,28 @@ export const login = async (req: Request, res: Response) => {
 
     const { email, password } = req.body;
 
-    // Find user
+    // Find user by email
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     // Generate tokens
     const accessToken = generateAccessToken(user._id.toString());
     const refreshToken = generateRefreshToken(user._id.toString());
 
+    // Set refresh token as HTTP-only cookie
+    res.cookie('refreshToken', refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+
     res.json({ 
       message: 'Login successful', 
-      accessToken, 
-      refreshToken 
+      accessToken 
     });
   } catch (error: any) {
     handleError(res, error);
@@ -88,39 +93,41 @@ export const login = async (req: Request, res: Response) => {
 
 export const refreshToken = async (req: Request, res: Response) => {
   try {
-    const { refreshToken } = req.body;
+    const refreshToken = req.cookies.refreshToken;
 
     if (!refreshToken) {
       return res.status(401).json({ error: 'Refresh token required' });
     }
 
     // Verify refresh token
-    const decoded = jwt.verify(
-      refreshToken, 
-      process.env.REFRESH_TOKEN_SECRET!
-    ) as { userId: string };
-    
+    const decoded = jwt.verify(refreshToken, JWT_SECRET) as { userId: string };
+
+    // Check if user exists
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+
     // Generate new access token
-    const newAccessToken = generateAccessToken(decoded.userId);
+    const newAccessToken = generateAccessToken(user._id.toString());
 
     res.json({ accessToken: newAccessToken });
-  } catch (error: any) {
-    if (error instanceof jwt.TokenExpiredError) {
-      return res.status(401).json({ error: 'Refresh token expired' });
-    }
-    handleError(res, error, 'Invalid refresh token');
+  } catch (error) {
+    res.status(401).json({ error: 'Invalid refresh token' });
   }
 };
 
 export const logout = async (req: Request, res: Response) => {
   try {
-    // Get token from request
     const token = req.header('Authorization')?.replace('Bearer ', '');
     
+    // Blacklist the current access token
     if (token) {
-      // Blacklist the current token
       blacklistToken(token);
     }
+
+    // Clear refresh token cookie
+    res.clearCookie('refreshToken');
 
     res.json({ message: 'Logged out successfully' });
   } catch (error: any) {

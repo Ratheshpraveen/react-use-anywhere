@@ -1,12 +1,16 @@
 import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 import { User } from '../models/User';
+import { JWT_SECRET, ACCESS_TOKEN_EXPIRATION, REFRESH_TOKEN_EXPIRATION } from '../config/jwtConfig';
 
 interface TokenPayload {
   userId: string;
   iat: number;
   exp: number;
 }
+
+// Token blacklist (in-memory for simplicity, consider using Redis in production)
+const tokenBlacklist = new Set<string>();
 
 class AuthError extends Error {
   statusCode: number;
@@ -26,7 +30,12 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       throw new AuthError('No token, authorization denied', 401);
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as TokenPayload;
+    // Check if token is blacklisted
+    if (tokenBlacklist.has(token)) {
+      throw new AuthError('Token is no longer valid', 401);
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET) as TokenPayload;
 
     // Optional: Check if user still exists and is active
     const user = await User.findById(decoded.userId);
@@ -54,19 +63,16 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 };
 
 export const generateAccessToken = (userId: string) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET!, {
-    expiresIn: process.env.JWT_EXPIRATION
+  return jwt.sign({ userId }, JWT_SECRET, {
+    expiresIn: ACCESS_TOKEN_EXPIRATION
   });
 };
 
 export const generateRefreshToken = (userId: string) => {
-  return jwt.sign({ userId }, process.env.REFRESH_TOKEN_SECRET!, {
-    expiresIn: process.env.REFRESH_TOKEN_EXPIRATION
+  return jwt.sign({ userId }, JWT_SECRET, {
+    expiresIn: REFRESH_TOKEN_EXPIRATION
   });
 };
-
-// Optional: Blacklist mechanism for tokens
-const tokenBlacklist = new Set<string>();
 
 export const blacklistToken = (token: string) => {
   tokenBlacklist.add(token);
