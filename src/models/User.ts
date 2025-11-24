@@ -1,17 +1,14 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-import JwtService from '../../lib/services/jwtService';
 
-export interface IUser extends Document {
+export interface IUser extends mongoose.Document {
   username: string;
   email: string;
   password: string;
-  role: string;
   comparePassword(candidatePassword: string): Promise<boolean>;
-  generateAuthTokens(): { accessToken: string; refreshToken: string };
 }
 
-const UserSchema: Schema = new Schema({
+const UserSchema = new mongoose.Schema({
   username: { 
     type: String, 
     required: true, 
@@ -25,38 +22,25 @@ const UserSchema: Schema = new Schema({
   password: { 
     type: String, 
     required: true 
-  },
-  role: { 
-    type: String, 
-    enum: ['user', 'admin'], 
-    default: 'user' 
   }
 });
 
 // Hash password before saving
 UserSchema.pre<IUser>('save', async function(next) {
   if (!this.isModified('password')) return next();
-  this.password = await bcrypt.hash(this.password, 10);
-  next();
+  
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error: any) {
+    next(error);
+  }
 });
 
 // Method to compare passwords
-UserSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
+UserSchema.methods.comparePassword = async function(candidatePassword: string) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Method to generate authentication tokens
-UserSchema.methods.generateAuthTokens = function() {
-  const payload = {
-    userId: this._id,
-    role: this.role
-  };
-
-  return {
-    accessToken: JwtService.generateAccessToken(payload),
-    refreshToken: JwtService.generateRefreshToken(payload)
-  };
-};
-
-const User = mongoose.model<IUser>('User', UserSchema);
-export default User;
+export const User = mongoose.model<IUser>('User', UserSchema);
