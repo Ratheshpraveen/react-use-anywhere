@@ -1,28 +1,22 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
+interface AuthenticatedRequest extends Request {
+  user?: any;
+}
 
-export const authenticateJWT = (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
+export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');
 
-  if (authHeader) {
-    const token = authHeader.split(' ')[1];
-
-    jwt.verify(token, JWT_SECRET, (err, user) => {
-      if (err) {
-        return res.sendStatus(403);
-      }
-
-      // @ts-ignore
-      req.user = user;
-      next();
-    });
-  } else {
-    res.sendStatus(401);
+  if (!token) {
+    return res.status(401).json({ error: 'No token, authorization denied' });
   }
-};
 
-export const generateAccessToken = (payload: any) => {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    res.status(401).json({ error: 'Token is not valid' });
+  }
 };

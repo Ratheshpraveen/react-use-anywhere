@@ -13,19 +13,19 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await axios.post('/api/login', { username, password });
+      const response = await axios.post('/api/auth/login', { username, password });
       const { token } = response.data;
       
       // Store token in localStorage
-      localStorage.setItem('jwt_token', token);
+      localStorage.setItem('token', token);
       
-      // Call optional callback
+      // Optional: Call onLoginSuccess callback
       onLoginSuccess?.(token);
       
-      // Reset error
       setError('');
     } catch (err) {
-      setError('Invalid credentials');
+      setError('Login failed. Please check your credentials.');
+      console.error(err);
     }
   };
 
@@ -34,21 +34,21 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       <form onSubmit={handleLogin}>
         <input 
           type="text" 
+          placeholder="Username" 
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          placeholder="Username"
-          required
         />
         <input 
-          type="password"
+          type="password" 
+          placeholder="Password" 
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
-          required
         />
         <button type="submit">Login</button>
+        {error && <p style={{ color: 'red' }}>{error}</p>}
       </form>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
     </div>
   );
 };
+
+export default Login;

@@ -1,50 +1,94 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
-import { generateAccessToken } from '../middleware/authMiddleware';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
 
-// Mock user database (replace with actual database in production)
-const users = [
-  {
-    id: 1,
-    username: 'testuser',
-    password: '$2b$10$X1/zB5x1Qh4zN4.eZz5Y4.Ry0z1Qh4zN4.eZz5Y4.Ry0z1Qh4zN4.eZz5Y4', // hashed password
-  }
-];
+dotenv.config();
 
-export const login = async (req: Request, res: Response) => {
-  const { username, password } = req.body;
+// Simulated user database (replace with your actual database logic)
+const users: { [key: string]: { id: number, username: string, password: string } } = {};
 
-  const user = users.find(u => u.username === username);
+export const register = async (req: Request, res: Response) => {
+  try {
+    const { username, password } = req.body;
 
-  if (user && await bcrypt.compare(password, user.password)) {
-    const token = generateAccessToken({ id: user.id, username: user.username });
-    res.json({ token });
-  } else {
-    res.status(401).json({ message: 'Invalid credentials' });
+    // Check if user already exists
+    if (users[username]) {
+      return res.status(400).json({ error: 'User already exists' });
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create user
+    const userId = Object.keys(users).length + 1;
+    users[username] = {
+      id: userId,
+      username,
+      password: hashedPassword
+    };
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: userId, username }, 
+      process.env.JWT_SECRET as string, 
+      { expiresIn: process.env.JWT_EXPIRATION }
+    );
+
+    res.status(201).json({ token, user: { id: userId, username } });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error during registration' });
   }
 };
 
-export const register = async (req: Request, res: Response) => {
-  const { username, password } = req.body;
+export const login = async (req: Request, res: Response) => {
+  try {
+    const { username, password } = req.body;
 
-  // Check if user already exists
-  const existingUser = users.find(u => u.username === username);
-  if (existingUser) {
-    return res.status(400).json({ message: 'User already exists' });
+    // Check if user exists
+    const user = users[username];
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
+
+    // Check password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user.id, username }, 
+      process.env.JWT_SECRET as string, 
+      { expiresIn: process.env.JWT_EXPIRATION }
+    );
+
+    res.json({ token, user: { id: user.id, username } });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error during login' });
   }
+};
 
-  // Hash password
-  const saltRounds = 10;
-  const hashedPassword = await bcrypt.hash(password, saltRounds);
+export const refreshToken = (req: Request, res: Response) => {
+  try {
+    const { username } = req.body;
+    const user = users[username];
 
-  // Create user (in a real app, you'd save to a database)
-  const newUser = {
-    id: users.length + 1,
-    username,
-    password: hashedPassword
-  };
-  users.push(newUser);
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid user' });
+    }
 
-  const token = generateAccessToken({ id: newUser.id, username: newUser.username });
-  res.status(201).json({ token });
+    // Generate new JWT token
+    const token = jwt.sign(
+      { id: user.id, username }, 
+      process.env.JWT_SECRET as string, 
+      { expiresIn: process.env.JWT_EXPIRATION }
+    );
+
+    res.json({ token });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error during token refresh' });
+  }
 };
