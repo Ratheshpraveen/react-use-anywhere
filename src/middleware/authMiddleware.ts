@@ -20,3 +20,9 @@ export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: N
     res.status(401).json({ error: 'Token is not valid' });
   }
 };
+
+export const generateToken = (payload: any): string => {
+  return jwt.sign(payload, process.env.JWT_SECRET as string, {
+    expiresIn: process.env.JWT_EXPIRATION || '1h'
+  });
+};

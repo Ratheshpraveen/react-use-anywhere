@@ -12,17 +12,19 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+
     try {
-      const response = await axios.post('/api/auth/login', { username, password });
-      const { token } = response.data;
-      
+      const response = await axios.post('/api/auth/login', { 
+        username, 
+        password 
+      });
+
       // Store token in localStorage
-      localStorage.setItem('token', token);
-      
-      // Optional: Call onLoginSuccess callback
-      onLoginSuccess?.(token);
-      
-      setError('');
+      localStorage.setItem('token', response.data.token);
+
+      // Optional: Call success callback
+      onLoginSuccess?.(response.data.token);
     } catch (err) {
       setError('Login failed. Please check your credentials.');
       console.error(err);
@@ -31,24 +33,25 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
   return (
     <div>
+      <h2>Login</h2>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
       <form onSubmit={handleLogin}>
         <input 
           type="text" 
           placeholder="Username" 
           value={username}
           onChange={(e) => setUsername(e.target.value)}
+          required 
         />
         <input 
           type="password" 
           placeholder="Password" 
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          required 
         />
         <button type="submit">Login</button>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
       </form>
     </div>
   );
 };
-
-export default Login;
