@@ -1,45 +1,60 @@
-const bcrypt = require('bcrypt');
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { JWT_SECRET, JWT_EXPIRATION } = require('../config/environment');
 
-class User {
-  constructor(username, email, password) {
-    this.username = username;
-    this.email = email;
-    this.password = this.hashPassword(password);
+const UserSchema = new mongoose.Schema({
+  username: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    minlength: 3
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    lowercase: true
+  },
+  password: {
+    type: String,
+    required: true,
+    minlength: 6
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
   }
+});
 
-  // Hash password using bcrypt
-  hashPassword(password) {
-    const saltRounds = 10;
-    return bcrypt.hashSync(password, saltRounds);
+// Hash password before saving
+UserSchema.pre('save', async function(next) {
+  if (this.isModified('password')) {
+    this.password = await bcrypt.hash(this.password, 10);
   }
+  next();
+});
 
-  // Compare password for login
-  comparePassword(inputPassword) {
-    return bcrypt.compareSync(inputPassword, this.password);
-  }
+// Method to check password
+UserSchema.methods.comparePassword = async function(candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
+};
 
-  // Generate JWT token
-  generateToken() {
-    return jwt.sign(
-      { 
-        username: this.username, 
-        email: this.email 
-      }, 
-      JWT_SECRET, 
-      { expiresIn: JWT_EXPIRATION }
-    );
-  }
-
-  // Static method to verify JWT token
-  static verifyToken(token) {
-    try {
-      return jwt.verify(token, JWT_SECRET);
-    } catch (error) {
-      return null;
+// Method to generate JWT token
+UserSchema.methods.generateAuthToken = function() {
+  const payload = {
+    user: {
+      id: this._id,
+      username: this.username
     }
-  }
-}
+  };
+
+  return jwt.sign(payload, process.env.JWT_SECRET, { 
+    expiresIn: '1h' 
+  });
+};
+
+const User = mongoose.model('User', UserSchema);
 
 module.exports = User;
