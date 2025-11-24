@@ -1,81 +1,55 @@
 import { Request, Response } from 'express';
-import bcrypt from 'bcryptjs';
-import { generateToken, refreshToken } from '../middleware/authMiddleware';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
-// Simulated user storage - in a real app, this would be a database
-const users: any[] = [];
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key';
+const SALT_ROUNDS = 10;
+
+// Mock user database (replace with actual database in production)
+const users: { [key: string]: { password: string } } = {};
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
-    // Check if user already exists
-    const existingUser = users.find(user => user.email === email);
-    if (existingUser) {
-      return res.status(400).json({ error: 'User already exists' });
+    if (users[username]) {
+      return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+    users[username] = { password: hashedPassword };
 
-    // Create user
-    const newUser = {
-      id: users.length + 1,
-      email,
-      password: hashedPassword
-    };
-
-    users.push(newUser);
-
-    // Generate token
-    const token = generateToken({ id: newUser.id, email: newUser.email });
-
-    res.status(201).json({ 
-      message: 'User registered successfully', 
-      token,
-      user: { id: newUser.id, email: newUser.email } 
-    });
+    const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '1h' });
+    res.status(201).json({ token });
   } catch (error) {
-    res.status(500).json({ error: 'Registration failed' });
+    res.status(500).json({ message: 'Registration failed' });
   }
 };
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
+    const user = users[username];
 
-    // Find user
-    const user = users.find(u => u.email === email);
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(400).json({ message: 'User not found' });
     }
 
-    // Check password
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Generate token
-    const token = generateToken({ id: user.id, email: user.email });
-
-    res.json({ 
-      message: 'Login successful', 
-      token,
-      user: { id: user.id, email: user.email } 
-    });
+    const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '1h' });
+    res.json({ token });
   } catch (error) {
-    res.status(500).json({ error: 'Login failed' });
+    res.status(500).json({ message: 'Login failed' });
   }
 };
 
-export const refreshUserToken = (req: Request, res: Response) => {
-  try {
-    const { token } = req.body;
-    const newToken = refreshToken(token);
-    res.json({ token: newToken });
-  } catch (error) {
-    res.status(401).json({ error: 'Token refresh failed' });
-  }
+export const refreshToken = (req: Request, res: Response) => {
+  const { username } = req.body;
+  const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '1h' });
+  res.json({ token });
 };

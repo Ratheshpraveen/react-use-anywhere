@@ -1,37 +1,27 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key';
 
-export const verifyToken = (req: Request, res: Response, next: NextFunction) => {
-  const token = req.headers['authorization']?.split(' ')[1];
+export interface AuthenticatedRequest extends Request {
+  user?: any;
+}
 
-  if (!token) {
-    return res.status(403).json({ error: 'No token provided' });
-  }
+export const authenticateJWT = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
 
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    (req as any).user = decoded;
-    next();
-  } catch (error) {
-    return res.status(401).json({ error: 'Unauthorized: Invalid token' });
-  }
-};
+  if (authHeader) {
+    const token = authHeader.split(' ')[1];
 
-export const generateToken = (payload: any, expiresIn: string = '1h') => {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn });
-};
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+      if (err) {
+        return res.sendStatus(403);
+      }
 
-export const refreshToken = (token: string) => {
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const newToken = generateToken({ 
-      id: (decoded as any).id, 
-      email: (decoded as any).email 
+      req.user = user;
+      next();
     });
-    return newToken;
-  } catch (error) {
-    throw new Error('Invalid token');
+  } else {
+    res.sendStatus(401);
   }
 };
