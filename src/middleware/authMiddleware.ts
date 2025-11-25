@@ -1,34 +1,34 @@
 import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 
-interface AuthenticatedRequest extends Request {
-  user?: any;
+interface TokenPayload {
+  userId: string;
+  iat: number;
+  exp: number;
 }
 
-export const verifyToken = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  const token = req.headers['authorization']?.split(' ')[1];
+export const authenticateJWT = (req: Request, res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
 
-  if (!token) {
-    return res.status(403).json({ message: 'No token provided' });
+  if (authHeader) {
+    const token = authHeader.split(' ')[1];
+
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as TokenPayload;
+      req.user = decoded;
+      next();
+    } catch (error) {
+      return res.status(403).json({ message: 'Invalid or expired token' });
+    }
+  } else {
+    res.status(401).json({ message: 'Authorization token required' });
   }
+};
 
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
-    req.user = decoded;
+export const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
+  if (req.user) {
     next();
-  } catch (error) {
-    return res.status(401).json({ message: 'Unauthorized' });
+  } else {
+    res.status(403).json({ message: 'Unauthorized' });
   }
-};
-
-export const generateAccessToken = (payload: any) => {
-  return jwt.sign(payload, process.env.JWT_SECRET as string, { 
-    expiresIn: process.env.JWT_EXPIRATION 
-  });
-};
-
-export const generateRefreshToken = (payload: any) => {
-  return jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET as string, { 
-    expiresIn: process.env.REFRESH_TOKEN_EXPIRATION 
-  });
 };

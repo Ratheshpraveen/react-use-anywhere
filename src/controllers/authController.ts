@@ -1,42 +1,41 @@
 import { Request, Response } from 'express';
-import { User, IUser } from '../models/User';
-import { generateAccessToken, generateRefreshToken } from '../middleware/authMiddleware';
+import { User } from '../models/User';
+import jwt from 'jsonwebtoken';
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { username, email, password } = req.body;
+    const { email, password } = req.body;
 
     // Check if user already exists
-    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
     // Create new user
-    const user = new User({ username, email, password });
+    const user = new User({ email, password });
     await user.save();
 
     // Generate tokens
-    const payload = { id: user._id, username: user.username };
-    const accessToken = generateAccessToken(payload);
-    const refreshToken = generateRefreshToken(payload);
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
 
     res.status(201).json({ 
       message: 'User registered successfully', 
       accessToken, 
       refreshToken 
     });
-  } catch (error: any) {
-    res.status(500).json({ message: 'Error registering user', error: error.message });
+  } catch (error) {
+    res.status(500).json({ message: 'Registration failed', error: error });
   }
 };
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { username, password } = req.body;
+    const { email, password } = req.body;
 
     // Find user
-    const user = await User.findOne({ username });
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -48,39 +47,42 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Generate tokens
-    const payload = { id: user._id, username: user.username };
-    const accessToken = generateAccessToken(payload);
-    const refreshToken = generateRefreshToken(payload);
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
 
-    res.json({ accessToken, refreshToken });
-  } catch (error: any) {
-    res.status(500).json({ message: 'Error logging in', error: error.message });
+    res.json({ 
+      message: 'Login successful', 
+      accessToken, 
+      refreshToken 
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Login failed', error: error });
   }
 };
 
 export const refreshToken = async (req: Request, res: Response) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res.status(401).json({ message: 'Refresh token required' });
+  }
+
   try {
-    const { refreshToken } = req.body;
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET!) as { userId: string };
+    const user = await User.findById(decoded.userId);
 
-    if (!refreshToken) {
-      return res.status(401).json({ message: 'Refresh token required' });
-    }
-
-    // Verify refresh token
-    const decoded: any = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET as string);
-    
-    // Find user
-    const user = await User.findById(decoded.id);
     if (!user) {
       return res.status(401).json({ message: 'Invalid refresh token' });
     }
 
-    // Generate new access token
-    const payload = { id: user._id, username: user.username };
-    const newAccessToken = generateAccessToken(payload);
+    const newAccessToken = user.generateAccessToken();
+    const newRefreshToken = user.generateRefreshToken();
 
-    res.json({ accessToken: newAccessToken });
-  } catch (error: any) {
-    res.status(401).json({ message: 'Invalid refresh token' });
+    res.json({ 
+      accessToken: newAccessToken, 
+      refreshToken: newRefreshToken 
+    });
+  } catch (error) {
+    res.status(403).json({ message: 'Invalid refresh token' });
   }
 };
