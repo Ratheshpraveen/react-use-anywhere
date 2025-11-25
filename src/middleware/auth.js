@@ -1,24 +1,28 @@
-const jwt = require('jsonwebtoken');
+const { verifyToken } = require('../utils/tokenUtils');
 
-const authMiddleware = (req, res, next) => {
-  // Get token from header
-  const token = req.header('Authorization')?.replace('Bearer ', '');
+/**
+ * Middleware to authenticate JWT token
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
-  // Check if no token
-  if (!token) {
-    return res.status(401).json({ message: 'No token, authorization denied' });
+  if (token == null) {
+    return res.status(401).json({ error: 'No token provided' });
   }
 
-  try {
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    // Add user from payload
-    req.user = decoded.user;
-    next();
-  } catch (err) {
-    res.status(401).json({ message: 'Token is not valid' });
+  const decoded = verifyToken(token);
+  if (!decoded) {
+    return res.status(403).json({ error: 'Invalid or expired token' });
   }
+
+  req.user = decoded;
+  next();
 };
 
-module.exports = authMiddleware;
+module.exports = {
+  authenticateToken
+};

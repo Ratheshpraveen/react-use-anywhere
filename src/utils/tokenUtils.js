@@ -1,60 +1,29 @@
-const Redis = require('ioredis');
-
-// Create Redis client (configure based on your Redis setup)
-const redisClient = new Redis({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: process.env.REDIS_PORT || 6379,
-  password: process.env.REDIS_PASSWORD
-});
-
-// Prefix for token blacklist keys
-const TOKEN_BLACKLIST_PREFIX = 'blacklist:';
+const jwt = require('jsonwebtoken');
+const { JWT_SECRET, JWT_EXPIRATION } = require('../config/environment');
 
 /**
- * Blacklist a token
- * @param {string} token - JWT token to blacklist
- * @param {number} [expiresIn=3600] - Expiration time in seconds (default 1 hour)
+ * Generate a JWT token for a user
+ * @param {Object} payload - User data to encode in the token
+ * @returns {string} Generated JWT token
  */
-const blacklistToken = async (token, expiresIn = 3600) => {
-  try {
-    // Store token in Redis with an expiration
-    await redisClient.setex(`${TOKEN_BLACKLIST_PREFIX}${token}`, expiresIn, 'blacklisted');
-  } catch (error) {
-    console.error('Error blacklisting token:', error);
-    throw error;
-  }
+const generateToken = (payload) => {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRATION });
 };
 
 /**
- * Check if a token is blacklisted
- * @param {string} token - JWT token to check
- * @returns {Promise<boolean>} - Whether the token is blacklisted
+ * Verify and decode a JWT token
+ * @param {string} token - JWT token to verify
+ * @returns {Object} Decoded token payload
  */
-const isTokenBlacklisted = async (token) => {
+const verifyToken = (token) => {
   try {
-    const result = await redisClient.exists(`${TOKEN_BLACKLIST_PREFIX}${token}`);
-    return result === 1;
+    return jwt.verify(token, JWT_SECRET);
   } catch (error) {
-    console.error('Error checking token blacklist:', error);
-    throw error;
-  }
-};
-
-/**
- * Remove a token from the blacklist
- * @param {string} token - JWT token to remove from blacklist
- */
-const removeBlacklistedToken = async (token) => {
-  try {
-    await redisClient.del(`${TOKEN_BLACKLIST_PREFIX}${token}`);
-  } catch (error) {
-    console.error('Error removing blacklisted token:', error);
-    throw error;
+    return null;
   }
 };
 
 module.exports = {
-  blacklistToken,
-  isTokenBlacklisted,
-  removeBlacklistedToken
+  generateToken,
+  verifyToken
 };

@@ -1,85 +1,41 @@
 const express = require('express');
+const { generateToken } = require('../utils/tokenUtils');
+const { authenticateToken } = require('../middleware/auth');
+
 const router = express.Router();
-const User = require('../models/User');
-const authMiddleware = require('../middleware/auth');
 
-// @route   POST /api/auth/register
-// @desc    Register a new user
-router.post('/register', async (req, res) => {
-  try {
-    const { username, email, password } = req.body;
+// Mock user database (replace with actual user authentication)
+const users = [
+  { id: 1, username: 'testuser', password: 'password123' }
+];
 
-    // Check if user already exists
-    let user = await User.findOne({ $or: [{ email }, { username }] });
-    if (user) {
-      return res.status(400).json({ message: 'User already exists' });
-    }
-
-    // Create new user
-    user = new User({ username, email, password });
-    await user.save();
-
-    // Generate token
-    const token = user.generateAuthToken();
-
-    res.status(201).json({ token });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
+/**
+ * Login route to generate JWT token
+ */
+router.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  
+  // Find user (replace with actual database lookup)
+  const user = users.find(u => u.username === username && u.password === password);
+  
+  if (!user) {
+    return res.status(401).json({ error: 'Invalid credentials' });
   }
+
+  // Generate token
+  const token = generateToken({ id: user.id, username: user.username });
+  
+  res.json({ token });
 });
 
-// @route   POST /api/auth/login
-// @desc    Authenticate user & get token
-router.post('/login', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-
-    // Find user
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials' });
-    }
-
-    // Check password
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials' });
-    }
-
-    // Generate token
-    const token = user.generateAuthToken();
-
-    res.json({ token });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// @route   GET /api/auth/me
-// @desc    Get current user profile
-router.get('/me', authMiddleware, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select('-password');
-    res.json(user);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// @route   POST /api/auth/refresh
-// @desc    Refresh authentication token
-router.post('/refresh', authMiddleware, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id);
-    const token = user.generateAuthToken();
-    res.json({ token });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
-  }
+/**
+ * Protected route example
+ */
+router.get('/protected', authenticateToken, (req, res) => {
+  res.json({ 
+    message: 'Access granted to protected route', 
+    user: req.user 
+  });
 });
 
 module.exports = router;
