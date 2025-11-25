@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
-import User from '../models/User';
+import { User, IUser } from '../models/User';
+import { generateAccessToken, generateRefreshToken } from '../middleware/authMiddleware';
 
-export const registerUser = async (req: Request, res: Response) => {
+export const register = async (req: Request, res: Response) => {
   try {
     const { username, email, password } = req.body;
 
@@ -16,31 +17,25 @@ export const registerUser = async (req: Request, res: Response) => {
     await user.save();
 
     // Generate tokens
-    const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
+    const accessToken = generateAccessToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
 
-    res.status(201).json({
-      message: 'User registered successfully',
-      user: { 
-        id: user._id, 
-        username: user.username, 
-        email: user.email 
-      },
-      accessToken,
-      refreshToken
+    res.status(201).json({ 
+      message: 'User registered successfully', 
+      accessToken, 
+      refreshToken 
     });
   } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ message: 'Server error during registration' });
+    res.status(500).json({ message: 'Error registering user', error });
   }
 };
 
-export const loginUser = async (req: Request, res: Response) => {
+export const login = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
-    // Find user by email
-    const user = await User.findOne({ email });
+    // Find user
+    const user = await User.findOne({ username });
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -52,38 +47,32 @@ export const loginUser = async (req: Request, res: Response) => {
     }
 
     // Generate tokens
-    const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
+    const accessToken = generateAccessToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
 
-    res.json({
-      message: 'Login successful',
-      user: { 
-        id: user._id, 
-        username: user.username, 
-        email: user.email 
-      },
-      accessToken,
-      refreshToken
+    res.json({ 
+      message: 'Login successful', 
+      accessToken, 
+      refreshToken 
     });
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error during login' });
+    res.status(500).json({ message: 'Server error', error });
   }
 };
 
-export const refreshAccessToken = async (req: Request, res: Response) => {
+export const refreshToken = async (req: Request, res: Response) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res.status(401).json({ message: 'Refresh token required' });
+  }
+
   try {
-    const user = req.user;
-
-    // Generate new access token
-    const newAccessToken = user.generateAccessToken();
-
-    res.json({
-      message: 'Token refreshed successfully',
-      accessToken: newAccessToken
-    });
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET!) as { userId: string };
+    const accessToken = generateAccessToken(decoded.userId);
+    
+    res.json({ accessToken });
   } catch (error) {
-    console.error('Token refresh error:', error);
-    res.status(500).json({ message: 'Server error during token refresh' });
+    res.status(403).json({ message: 'Invalid refresh token' });
   }
 };

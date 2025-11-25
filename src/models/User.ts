@@ -1,18 +1,14 @@
-import mongoose, { Document, Schema } from 'mongoose';
-import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-import jwtConfig from '../config/jwtConfig';
 
-export interface IUser extends Document {
+export interface IUser extends mongoose.Document {
   username: string;
   email: string;
   password: string;
   comparePassword(candidatePassword: string): Promise<boolean>;
-  generateAccessToken(): string;
-  generateRefreshToken(): string;
 }
 
-const UserSchema: Schema = new Schema({
+const UserSchema = new mongoose.Schema({
   username: { 
     type: String, 
     required: true, 
@@ -27,9 +23,9 @@ const UserSchema: Schema = new Schema({
     type: String, 
     required: true 
   }
-}, { timestamps: true });
+});
 
-// Password hashing middleware
+// Hash password before saving
 UserSchema.pre<IUser>('save', async function(next) {
   if (!this.isModified('password')) return next();
   
@@ -38,41 +34,13 @@ UserSchema.pre<IUser>('save', async function(next) {
     this.password = await bcrypt.hash(this.password, salt);
     next();
   } catch (error) {
-    next(error as Error);
+    next(error as mongoose.CallbackError);
   }
 });
 
-// Password comparison method
-UserSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
+// Method to compare passwords
+UserSchema.methods.comparePassword = async function(candidatePassword: string) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Generate access token method
-UserSchema.methods.generateAccessToken = function(): string {
-  return jwt.sign(
-    { 
-      id: this._id, 
-      username: this.username 
-    }, 
-    jwtConfig.accessTokenSecret, 
-    { 
-      expiresIn: jwtConfig.accessTokenExpiration 
-    }
-  );
-};
-
-// Generate refresh token method
-UserSchema.methods.generateRefreshToken = function(): string {
-  return jwt.sign(
-    { 
-      id: this._id 
-    }, 
-    jwtConfig.refreshTokenSecret, 
-    { 
-      expiresIn: jwtConfig.refreshTokenExpiration 
-    }
-  );
-};
-
-const User = mongoose.model<IUser>('User', UserSchema);
-export default User;
+export const User = mongoose.model<IUser>('User', UserSchema);
