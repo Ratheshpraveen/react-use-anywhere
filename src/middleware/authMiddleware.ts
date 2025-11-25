@@ -1,38 +1,34 @@
-import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
+import { verifyToken } from '../utils/tokenUtils';
 
-interface TokenPayload {
-  userId: string;
-  iat: number;
-  exp: number;
-}
-
-export const authenticateJWT = (req: Request, res: Response, next: NextFunction) => {
+export function authenticateJWT(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
 
-  if (authHeader) {
-    const token = authHeader.split(' ')[1];
-
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as TokenPayload;
-      req.user = { id: decoded.userId };
-      next();
-    } catch (error) {
-      return res.status(403).json({ message: 'Invalid or expired token' });
-    }
-  } else {
-    res.status(401).json({ message: 'Authorization token required' });
+  if (!authHeader) {
+    return res.status(401).json({ error: 'No token provided' });
   }
-};
 
-export const generateAccessToken = (userId: string) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET!, {
-    expiresIn: process.env.JWT_EXPIRATION
-  });
-};
+  const token = authHeader.split(' ')[1]; // Bearer TOKEN
 
-export const generateRefreshToken = (userId: string) => {
-  return jwt.sign({ userId }, process.env.REFRESH_TOKEN_SECRET!, {
-    expiresIn: process.env.REFRESH_TOKEN_EXPIRATION
-  });
-};
+  const decoded = verifyToken(token);
+
+  if (!decoded) {
+    return res.status(403).json({ error: 'Invalid or expired token' });
+  }
+
+  // Attach user info to request for further use
+  req.user = decoded;
+  next();
+}
+
+export function requireRole(roles: string[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const user = req.user;
+
+    if (!user || !roles.includes(user.role || '')) {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+
+    next();
+  };
+}

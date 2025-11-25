@@ -10,7 +10,7 @@ export interface UserPayload {
 export function generateToken(user: UserPayload): string {
   return jwt.sign(
     { 
-      sub: user.id, 
+      id: user.id, 
       email: user.email,
       role: user.role 
     }, 
@@ -25,11 +25,7 @@ export function generateToken(user: UserPayload): string {
 export function verifyToken(token: string): UserPayload | null {
   try {
     const decoded = jwt.verify(token, JWT_CONFIG.secret) as UserPayload;
-    return {
-      id: decoded.sub as string,
-      email: decoded.email,
-      role: decoded.role
-    };
+    return decoded;
   } catch (error) {
     return null;
   }
