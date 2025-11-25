@@ -1,61 +1,54 @@
-import mongoose from 'mongoose';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import * as bcrypt from 'bcryptjs';
+import * as jwt from 'jsonwebtoken';
 
-export interface IUser extends mongoose.Document {
+interface UserInterface {
+  id?: string;
+  username: string;
   email: string;
   password: string;
-  comparePassword(candidatePassword: string): Promise<boolean>;
-  generateAccessToken(): string;
-  generateRefreshToken(): string;
 }
 
-const UserSchema = new mongoose.Schema<IUser>({
-  email: { 
-    type: String, 
-    required: true, 
-    unique: true 
-  },
-  password: { 
-    type: String, 
-    required: true 
-  }
-});
+class User implements UserInterface {
+  id?: string;
+  username: string;
+  email: string;
+  password: string;
 
-// Password hashing middleware
-UserSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  
-  try {
+  constructor(user: UserInterface) {
+    this.id = user.id;
+    this.username = user.username;
+    this.email = user.email;
+    this.password = user.password;
+  }
+
+  // Hash password before saving
+  async hashPassword() {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error as Error);
   }
-});
 
-// Password comparison method
-UserSchema.methods.comparePassword = async function(candidatePassword: string) {
-  return bcrypt.compare(candidatePassword, this.password);
-};
+  // Compare password for login
+  async comparePassword(candidatePassword: string): Promise<boolean> {
+    return bcrypt.compare(candidatePassword, this.password);
+  }
 
-// Generate access token
-UserSchema.methods.generateAccessToken = function() {
-  return jwt.sign(
-    { userId: this._id }, 
-    process.env.JWT_SECRET!, 
-    { expiresIn: process.env.ACCESS_TOKEN_EXPIRY }
-  );
-};
+  // Generate access token
+  generateAccessToken(): string {
+    return jwt.sign(
+      { id: this.id, email: this.email }, 
+      process.env.JWT_SECRET || 'fallback_secret', 
+      { expiresIn: process.env.JWT_EXPIRATION || '1h' }
+    );
+  }
 
-// Generate refresh token
-UserSchema.methods.generateRefreshToken = function() {
-  return jwt.sign(
-    { userId: this._id }, 
-    process.env.JWT_REFRESH_SECRET!, 
-    { expiresIn: process.env.REFRESH_TOKEN_EXPIRY }
-  );
-};
+  // Generate refresh token
+  generateRefreshToken(): string {
+    return jwt.sign(
+      { id: this.id, email: this.email }, 
+      process.env.REFRESH_TOKEN_SECRET || 'refresh_fallback_secret', 
+      { expiresIn: process.env.REFRESH_TOKEN_EXPIRATION || '7d' }
+    );
+  }
+}
 
-export const User = mongoose.model<IUser>('User', UserSchema);
+export default User;
