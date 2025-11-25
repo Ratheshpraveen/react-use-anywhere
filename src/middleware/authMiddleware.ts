@@ -7,32 +7,30 @@ interface TokenPayload {
   exp: number;
 }
 
-export const authenticateJWT = (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
+export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');
 
-  if (authHeader) {
-    const token = authHeader.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: 'No token, authorization denied' });
+  }
 
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as TokenPayload;
-      req.user = { userId: decoded.userId };
-      next();
-    } catch (error) {
-      return res.status(403).json({ message: 'Invalid or expired token' });
-    }
-  } else {
-    res.status(401).json({ message: 'Authorization token required' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as TokenPayload;
+    (req as any).user = { id: decoded.userId };
+    next();
+  } catch (error) {
+    res.status(401).json({ error: 'Token is not valid' });
   }
 };
 
 export const generateAccessToken = (userId: string) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET!, {
-    expiresIn: process.env.JWT_EXPIRATION
+  return jwt.sign({ userId }, process.env.JWT_SECRET!, { 
+    expiresIn: process.env.JWT_EXPIRATION 
   });
 };
 
 export const generateRefreshToken = (userId: string) => {
-  return jwt.sign({ userId }, process.env.REFRESH_TOKEN_SECRET!, {
-    expiresIn: process.env.REFRESH_TOKEN_EXPIRATION
+  return jwt.sign({ userId }, process.env.REFRESH_TOKEN_SECRET!, { 
+    expiresIn: process.env.REFRESH_TOKEN_EXPIRATION 
   });
 };
