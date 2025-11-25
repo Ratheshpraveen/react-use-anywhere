@@ -1,38 +1,24 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+require('dotenv').config();
 
-const authMiddleware = async (req, res, next) => {
+const authMiddleware = (req, res, next) => {
+  // Get token from header
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+
+  // Check if no token
+  if (!token) {
+    return res.status(401).json({ message: 'No token, authorization denied' });
+  }
+
   try {
-    // Get token from header
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-
-    if (!token) {
-      return res.status(401).json({ message: 'No token, authorization denied' });
-    }
-
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // Find user
-    const user = await User.findById(decoded.id);
-
-    if (!user) {
-      return res.status(401).json({ message: 'User not found' });
-    }
-
-    // Attach user to request object
-    req.user = user;
-    req.token = token;
-
+    
+    // Add user from payload
+    req.user = decoded.user;
     next();
-  } catch (error) {
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ message: 'Invalid token' });
-    }
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ message: 'Token expired' });
-    }
-    res.status(500).json({ message: 'Server error during authentication' });
+  } catch (err) {
+    res.status(401).json({ message: 'Token is not valid' });
   }
 };
 
