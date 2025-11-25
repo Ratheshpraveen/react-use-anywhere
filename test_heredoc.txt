@@ -1,0 +1,6 @@
+Line 1 with 'single quotes'
+Line 2 with "double quotes"
+Line 3 with $variables
+Line 4 with "Rathesh"
+is a good boy
+
