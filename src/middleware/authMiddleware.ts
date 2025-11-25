@@ -1,29 +1,34 @@
-import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { JWT_CONFIG } from '../config/jwtConfig';
+import { Request, Response, NextFunction } from 'express';
 
-export const generateToken = (payload: any): string => {
-  return jwt.sign(payload, JWT_CONFIG.secret, {
-    expiresIn: JWT_CONFIG.expiresIn,
-    algorithm: JWT_CONFIG.algorithm
-  });
-};
+interface AuthenticatedRequest extends Request {
+  user?: any;
+}
 
-export const verifyToken = (req: Request, res: Response, next: NextFunction) => {
-  const token = req.headers.authorization?.split(' ')[1];
+export const verifyToken = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  const token = req.headers['authorization']?.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({ message: 'No token provided' });
+    return res.status(403).json({ message: 'No token provided' });
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_CONFIG.secret);
-    (req as any).user = decoded;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+    req.user = decoded;
     next();
   } catch (error) {
-    if (error instanceof jwt.TokenExpiredError) {
-      return res.status(401).json({ message: 'Token expired' });
-    }
-    return res.status(401).json({ message: 'Invalid token' });
+    return res.status(401).json({ message: 'Unauthorized' });
   }
+};
+
+export const generateAccessToken = (payload: any) => {
+  return jwt.sign(payload, process.env.JWT_SECRET as string, { 
+    expiresIn: process.env.JWT_EXPIRATION 
+  });
+};
+
+export const generateRefreshToken = (payload: any) => {
+  return jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET as string, { 
+    expiresIn: process.env.REFRESH_TOKEN_EXPIRATION 
+  });
 };
