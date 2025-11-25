@@ -1,41 +1,81 @@
-import express from 'express';
-import { generateToken } from '../utils/tokenUtils';
-import { authenticateJWT, requireRole } from '../middleware/authMiddleware';
+import express, { Request, Response } from 'express';
+import User from '../models/User';
+import { authMiddleware } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-// Mock user database (replace with actual database logic)
-const users = [
-  { id: '1', email: 'user@example.com', password: 'password123', role: 'user' },
-  { id: '2', email: 'admin@example.com', password: 'admin123', role: 'admin' }
-];
+// Registration endpoint
+router.post('/register', async (req: Request, res: Response) => {
+  try {
+    const { username, email, password } = req.body;
 
-router.post('/login', (req, res) => {
-  const { email, password } = req.body;
+    // Create user instance
+    const user = new User({ username, email, password });
 
-  const user = users.find(u => u.email === email && u.password === password);
+    // Hash password
+    await user.hashPassword();
 
-  if (!user) {
-    return res.status(401).json({ error: 'Invalid credentials' });
+    // TODO: Save user to database (replace with your database logic)
+    // const savedUser = await userRepository.save(user);
+
+    // Generate token
+    const token = user.generateToken();
+
+    res.status(201).json({ 
+      message: 'User registered successfully', 
+      token 
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error during registration' });
   }
+});
 
-  const token = generateToken({
-    id: user.id,
-    email: user.email,
-    role: user.role
+// Login endpoint
+router.post('/login', async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+
+    // TODO: Fetch user from database (replace with your database logic)
+    // const user = await userRepository.findByEmail(email);
+    const user = new User({ 
+      id: 'mock-id', 
+      username: 'mockuser', 
+      email, 
+      password: await new User({ username: '', email: '', password }).hashPassword() 
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    // Check password
+    const isMatch = await user.comparePassword(password);
+
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    // Generate token
+    const token = user.generateToken();
+
+    res.json({ 
+      message: 'Login successful', 
+      token 
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error during login' });
+  }
+});
+
+// Protected route example
+router.get('/profile', authMiddleware, (req: Request, res: Response) => {
+  // Access authenticated user via (req as any).user
+  res.json({ 
+    message: 'Access to protected route', 
+    user: (req as any).user 
   });
-
-  res.json({ token });
-});
-
-// Example protected route
-router.get('/admin', authenticateJWT, requireRole(['admin']), (req, res) => {
-  res.json({ message: 'Welcome to admin dashboard' });
-});
-
-// Example user-specific route
-router.get('/profile', authenticateJWT, (req, res) => {
-  res.json({ user: req.user });
 });
 
 export default router;

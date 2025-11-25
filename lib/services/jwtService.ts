@@ -1,121 +1,67 @@
 import jwt from 'jsonwebtoken';
 import Redis from 'ioredis';
-import { v4 as uuidv4 } from 'uuid';
 
 interface TokenPayload {
   userId: string;
   role: string;
-  tokenId: string;
 }
 
-class JWTService {
+class JwtService {
   private redis: Redis;
   private accessTokenSecret: string;
   private refreshTokenSecret: string;
-  private accessTokenExpiry: string;
-  private refreshTokenExpiry: string;
 
   constructor() {
-    // Initialize Redis connection
     this.redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-    
-    // Load token secrets and expiry from environment
     this.accessTokenSecret = process.env.ACCESS_TOKEN_SECRET || 'default_access_secret';
     this.refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET || 'default_refresh_secret';
-    this.accessTokenExpiry = process.env.ACCESS_TOKEN_EXPIRY || '15m';
-    this.refreshTokenExpiry = process.env.REFRESH_TOKEN_EXPIRY || '7d';
   }
 
-  // Generate access token
-  generateAccessToken(userId: string, role: string): string {
-    const tokenId = uuidv4();
-    const payload: TokenPayload = { 
-      userId, 
-      role, 
-      tokenId 
-    };
-
+  generateAccessToken(payload: TokenPayload): string {
     return jwt.sign(payload, this.accessTokenSecret, { 
-      expiresIn: this.accessTokenExpiry 
+      expiresIn: process.env.ACCESS_TOKEN_EXPIRY || '15m' 
     });
   }
 
-  // Generate refresh token
-  generateRefreshToken(userId: string, role: string): string {
-    const tokenId = uuidv4();
-    const payload: TokenPayload = { 
-      userId, 
-      role, 
-      tokenId 
-    };
-
-    // Store token ID in Redis for tracking
-    this.storeRefreshToken(tokenId, userId);
-
-    return jwt.sign(payload, this.refreshTokenSecret, { 
-      expiresIn: this.refreshTokenExpiry 
+  generateRefreshToken(payload: TokenPayload): string {
+    const refreshToken = jwt.sign(payload, this.refreshTokenSecret, { 
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRY || '7d' 
     });
+
+    // Store refresh token in Redis with user ID as key
+    this.redis.set(`refresh_token:${payload.userId}`, refreshToken, 'EX', 7 * 24 * 60 * 60);
+
+    return refreshToken;
   }
 
-  // Verify access token
-  verifyAccessToken(token: string): TokenPayload | null {
+  async verifyAccessToken(token: string): Promise<TokenPayload> {
     try {
       return jwt.verify(token, this.accessTokenSecret) as TokenPayload;
-    } catch {
-      return null;
+    } catch (error) {
+      throw new Error('Invalid or expired access token');
     }
   }
 
-  // Verify refresh token
-  verifyRefreshToken(token: string): TokenPayload | null {
+  async verifyRefreshToken(token: string): Promise<TokenPayload> {
     try {
       const decoded = jwt.verify(token, this.refreshTokenSecret) as TokenPayload;
       
-      // Check if refresh token is blacklisted
-      if (this.isRefreshTokenBlacklisted(decoded.tokenId)) {
-        return null;
-      }
+      // Check if refresh token exists in Redis
+      const storedToken = await this.redis.get(`refresh_token:${decoded.userId}`);
       
-      return decoded;
-    } catch {
-      return null;
-    }
-  }
-
-  // Blacklist token
-  async blacklistToken(tokenId: string, userId: string): Promise<void> {
-    // Store blacklisted token in Redis with an expiry
-    await this.redis.set(`blacklist:${tokenId}`, userId, 'EX', 60 * 60 * 24 * 7); // 7 days
-  }
-
-  // Check if token is blacklisted
-  async isTokenBlacklisted(tokenId: string): Promise<boolean> {
-    const result = await this.redis.exists(`blacklist:${tokenId}`);
-    return result === 1;
-  }
-
-  // Store refresh token details
-  private async storeRefreshToken(tokenId: string, userId: string): Promise<void> {
-    await this.redis.set(`refresh:${tokenId}`, userId, 'EX', 60 * 60 * 24 * 7); // 7 days
-  }
-
-  // Check if refresh token is blacklisted
-  private async isRefreshTokenBlacklisted(tokenId: string): Promise<boolean> {
-    const result = await this.redis.exists(`blacklist:${tokenId}`);
-    return result === 1;
-  }
-
-  // Revoke all tokens for a user
-  async revokeAllTokens(userId: string): Promise<void> {
-    // Implement logic to invalidate all tokens for a specific user
-    const keys = await this.redis.keys(`refresh:*`);
-    for (const key of keys) {
-      const storedUserId = await this.redis.get(key);
-      if (storedUserId === userId) {
-        await this.redis.del(key);
+      if (storedToken !== token) {
+        throw new Error('Refresh token is invalid');
       }
+
+      return decoded;
+    } catch (error) {
+      throw new Error('Invalid or expired refresh token');
     }
+  }
+
+  async invalidateRefreshToken(userId: string): Promise<void> {
+    await this.redis.del(`refresh_token:${userId}`);
   }
 }
 
-export default new JWTService();
+export default new JwtService();
