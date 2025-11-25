@@ -1,16 +1,34 @@
 {
+  "extends": "@tsconfig/recommended",
   "compilerOptions": {
-    "target": "es2020",
-    "module": "commonjs",
-    "strict": true,
+    "target": "ES2021",
+    "module": "NodeNext",
+    "lib": [
+      "ES2023"
+    ],
+    "moduleResolution": "nodenext",
     "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "sourceMap": true,
+    "noImplicitReturns": true,
+    "declaration": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "useDefineForClassFields": true,
+    "strictPropertyInitialization": false,
+    "allowJs": true,
+    "strict": true,
+    "strictFunctionTypes": false,
+    "outDir": "dist",
+    "types": [
+      "node"
+    ],
     "resolveJsonModule": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules"]
+  "include": [
+    "**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }
