@@ -1,82 +1,96 @@
 import React from 'react';
 
-// Card component props interface for type safety
+// Define the interface for Card component props
 export interface CardProps {
+  /**
+   * The title of the card
+   */
   title: string;
-  description: string;
+
+  /**
+   * The content of the card
+   */
+  content?: string;
+
+  /**
+   * Optional image URL for the card
+   */
   imageUrl?: string;
+
+  /**
+   * Optional click handler for the card
+   */
   onClick?: () => void;
+
+  /**
+   * Optional custom className for additional styling
+   */
   className?: string;
-  variant?: 'default' | 'outlined' | 'elevated';
-  size?: 'small' | 'medium' | 'large';
 }
 
-// Card component implementation
+/**
+ * Card Component - A flexible and reusable card component
+ * @param props CardProps - Properties for configuring the card
+ * @returns React.ReactElement
+ */
 const Card: React.FC<CardProps> = ({
-  title,
-  description,
-  imageUrl,
-  onClick,
-  className = '',
-  variant = 'default',
-  size = 'medium'
+  title, 
+  content, 
+  imageUrl, 
+  onClick, 
+  className = ''
 }) => {
-  const getVariantClasses = () => {
-    switch (variant) {
-      case 'outlined':
-        return 'border border-gray-300 rounded-lg';
-      case 'elevated':
-        return 'shadow-md rounded-lg';
-      default:
-        return 'bg-white rounded-lg';
-    }
+  // Inline styles with TypeScript type assertion
+  const cardStyle: React.CSSProperties = {
+    border: '1px solid #e0e0e0',
+    borderRadius: '8px',
+    padding: '16px',
+    maxWidth: '300px',
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+    cursor: onClick ? 'pointer' : 'default',
+    transition: 'transform 0.2s',
+    ...(onClick && {
+      ':hover': {
+        transform: 'scale(1.02)'
+      }
+    })
   };
 
-  const getSizeClasses = () => {
-    switch (size) {
-      case 'small':
-        return 'w-48 p-2';
-      case 'large':
-        return 'w-96 p-6';
-      default:
-        return 'w-64 p-4';
+  const handleClick = () => {
+    if (onClick) {
+      onClick();
     }
   };
 
   return (
     <div 
-      className={`
-        ${getVariantClasses()} 
-        ${getSizeClasses()} 
-        ${className} 
-        transition-all duration-300 
-        hover:shadow-lg 
-        cursor-${onClick ? 'pointer' : 'default'}
-      `}
-      onClick={onClick}
+      style={cardStyle} 
+      className={`card ${className}`}
+      onClick={handleClick}
     >
       {imageUrl && (
         <img 
           src={imageUrl} 
           alt={title} 
-          className="w-full h-48 object-cover rounded-t-lg mb-4" 
+          style={{ 
+            width: '100%', 
+            borderRadius: '4px', 
+            marginBottom: '12px' 
+          }} 
         />
       )}
-      <div className="px-4 py-2">
-        <h3 className="text-xl font-semibold mb-2">{title}</h3>
-        <p className="text-gray-600">{description}</p>
-      </div>
+      <h3 style={{ margin: '0 0 8px 0' }}>{title}</h3>
+      {content && <p style={{ margin: 0, color: '#666' }}>{content}</p>}
     </div>
   );
 };
 
-// Default props for the Card component
+// Default props
 Card.defaultProps = {
-  variant: 'default',
-  size: 'medium',
-  className: '',
+  content: '',
+  imageUrl: '',
   onClick: undefined,
-  imageUrl: undefined
+  className: ''
 };
 
 export default Card;
