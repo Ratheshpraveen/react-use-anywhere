@@ -1,7 +1,8 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import authRoutes from './routes/auth';
+import authRoutes from './routes/authRoutes';
+import { errorHandler } from './middleware/errorMiddleware';
 
 // Load environment variables
 dotenv.config();
@@ -19,9 +20,7 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/myapp')
 // Routes
 app.use('/api/auth', authRoutes);
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Global error handler
+app.use(errorHandler);
 
 export default app;

@@ -1,9 +1,21 @@
-import dotenv from 'dotenv';
+import crypto from 'crypto';
 
-dotenv.config();
+export interface JwtConfig {
+  accessTokenSecret: string;
+  refreshTokenSecret: string;
+  accessTokenExpiration: string;
+  refreshTokenExpiration: string;
+}
 
-export const JWT_CONFIG = {
-  secret: process.env.JWT_SECRET || 'your_default_secret_key',
-  expiresIn: '1h', // Token expires in 1 hour
-  algorithm: 'HS256'
+const generateSecureSecret = (): string => {
+  return crypto.randomBytes(64).toString('hex');
 };
+
+const jwtConfig: JwtConfig = {
+  accessTokenSecret: process.env.JWT_ACCESS_SECRET || generateSecureSecret(),
+  refreshTokenSecret: process.env.JWT_REFRESH_SECRET || generateSecureSecret(),
+  accessTokenExpiration: process.env.JWT_ACCESS_EXPIRATION || '15m',
+  refreshTokenExpiration: process.env.JWT_REFRESH_EXPIRATION || '7d'
+};
+
+export default jwtConfig;

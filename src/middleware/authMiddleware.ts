@@ -1,48 +1,56 @@
 import { Request, Response, NextFunction } from 'express';
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
+import jwtConfig from '../config/jwtConfig';
+import User from '../models/User';
 
-interface TokenPayload {
-  id: string;
-  email: string;
+interface AuthenticatedRequest extends Request {
+  user?: any;
 }
 
-export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  const token = req.header('Authorization')?.replace('Bearer ', '');
+export const authenticateToken = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({ message: 'No token, authorization denied' });
+    return res.status(401).json({ message: 'No token provided' });
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as TokenPayload;
-    
-    // Attach user to request object
-    (req as any).user = decoded;
+    const decoded = jwt.verify(token, jwtConfig.accessTokenSecret) as { id: string };
+    const user = await User.findById(decoded.id).select('-password');
+
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    req.user = user;
     next();
   } catch (error) {
-    res.status(401).json({ message: 'Token is not valid' });
+    if (error instanceof jwt.TokenExpiredError) {
+      return res.status(401).json({ message: 'Token expired' });
+    }
+    return res.status(403).json({ message: 'Invalid token' });
   }
 };
 
-export const refreshTokenMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  const refreshToken = req.body.refreshToken;
+export const refreshTokenMiddleware = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  const { refreshToken } = req.body;
 
   if (!refreshToken) {
-    return res.status(401).json({ message: 'Refresh token is required' });
+    return res.status(401).json({ message: 'Refresh token required' });
   }
 
   try {
-    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET || 'refresh_fallback_secret') as TokenPayload;
-    
-    // Generate new access token
-    const newAccessToken = jwt.sign(
-      { id: decoded.id, email: decoded.email },
-      process.env.JWT_SECRET || 'fallback_secret',
-      { expiresIn: process.env.JWT_EXPIRATION || '1h' }
-    );
+    const decoded = jwt.verify(refreshToken, jwtConfig.refreshTokenSecret) as { id: string };
+    const user = await User.findById(decoded.id);
 
-    res.json({ accessToken: newAccessToken });
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    req.user = user;
+    next();
   } catch (error) {
-    res.status(401).json({ message: 'Invalid refresh token' });
+    return res.status(403).json({ message: 'Invalid refresh token' });
   }
 };
