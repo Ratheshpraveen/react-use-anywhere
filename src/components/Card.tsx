@@ -1,21 +1,19 @@
 import React from 'react';
 
-// TypeScript interface for Card component props
-interface CardProps {
+// Card component props interface for type safety
+export interface CardProps {
   title: string;
   content: string;
   imageUrl?: string;
   onClick?: () => void;
-  className?: string;
 }
 
-// Functional React component with TypeScript
+// Card component implementation
 const Card: React.FC<CardProps> = ({
   title, 
   content, 
   imageUrl, 
-  onClick, 
-  className = ''
+  onClick
 }) => {
   const cardStyle: React.CSSProperties = {
     border: '1px solid #ddd',
@@ -31,21 +29,27 @@ const Card: React.FC<CardProps> = ({
     width: '100%',
     height: '200px',
     objectFit: 'cover',
-    borderRadius: '8px 8px 0 0',
+    borderRadius: '8px',
     marginBottom: '12px',
   };
 
-  const handleClick = () => {
-    if (onClick) {
-      onClick();
-    }
+  const titleStyle: React.CSSProperties = {
+    fontSize: '1.25rem',
+    fontWeight: 'bold',
+    marginBottom: '8px',
+  };
+
+  const contentStyle: React.CSSProperties = {
+    color: '#666',
   };
 
   return (
     <div 
-      style={{...cardStyle, ...(onClick ? { ':hover': { transform: 'scale(1.02)' } } : {})}} 
-      className={className}
-      onClick={handleClick}
+      style={{
+        ...cardStyle,
+        ...(onClick ? { ':hover': { transform: 'scale(1.02)' } } : {})
+      }}
+      onClick={onClick}
     >
       {imageUrl && (
         <img 
@@ -54,8 +58,8 @@ const Card: React.FC<CardProps> = ({
           style={imageStyle} 
         />
       )}
-      <h3>{title}</h3>
-      <p>{content}</p>
+      <div style={titleStyle}>{title}</div>
+      <div style={contentStyle}>{content}</div>
     </div>
   );
 };
@@ -64,7 +68,6 @@ const Card: React.FC<CardProps> = ({
 Card.defaultProps = {
   imageUrl: '',
   onClick: undefined,
-  className: '',
 };
 
 export default Card;
