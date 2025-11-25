@@ -1,30 +1,24 @@
-import { JwtPayload } from 'jsonwebtoken';
+import { JWTPayload } from 'jsonwebtoken';
 
-// JWT Payload interface extending standard JWT payload
-export interface CustomJWTPayload extends JwtPayload {
+export interface CustomJWTPayload extends JWTPayload {
   userId: string;
-  email: string;
+  email?: string;
   role?: string;
 }
 
-// Authentication state interface for managing JWT-based authentication
 export interface AuthState {
-  token: string | null;
-  refreshToken: string | null;
   isAuthenticated: boolean;
-  user: {
-    id: string;
-    email: string;
-    role?: string;
-  } | null;
-  expiresAt: number | null;
+  user: CustomJWTPayload | null;
+  accessToken: string | null;
+  refreshToken: string | null;
 }
 
-// Initial auth state
-export const initialAuthState: AuthState = {
-  token: null,
-  refreshToken: null,
-  isAuthenticated: false,
-  user: null,
-  expiresAt: null,
-};
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+}
