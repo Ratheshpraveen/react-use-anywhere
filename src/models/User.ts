@@ -1,55 +1,49 @@
+import mongoose, { Document, Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 
-interface UserInterface {
-  id?: string;
-  username: string;
+export interface IUser extends Document {
   email: string;
   password: string;
+  comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
-class User implements UserInterface {
-  id?: string;
-  username: string;
-  email: string;
-  password: string;
-
-  constructor(user: UserInterface) {
-    this.id = user.id;
-    this.username = user.username;
-    this.email = user.email;
-    this.password = user.password;
+const UserSchema: Schema = new Schema({
+  email: { 
+    type: String, 
+    required: true, 
+    unique: true,
+    lowercase: true,
+    trim: true
+  },
+  password: { 
+    type: String, 
+    required: true 
   }
+});
 
-  // Hash password before saving
-  async hashPassword() {
+// Hash password before saving
+UserSchema.pre<IUser>('save', async function(next) {
+  // Only hash the password if it has been modified (or is new)
+  if (!this.isModified('password')) return next();
+
+  try {
+    // Generate a salt
     const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
+    // Hash the password along with our new salt
+    const hash = await bcrypt.hash(this.password, salt);
+    // Override the cleartext password with the hashed one
+    this.password = hash;
+    next();
+  } catch (error: any) {
+    return next(error);
   }
+});
 
-  // Compare password for login
-  async comparePassword(candidatePassword: string): Promise<boolean> {
-    return bcrypt.compare(candidatePassword, this.password);
-  }
+// Method to compare passwords
+UserSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
+  return bcrypt.compare(candidatePassword, this.password);
+};
 
-  // Generate JWT token
-  generateToken(): string {
-    if (!process.env.JWT_SECRET) {
-      throw new Error('JWT_SECRET is not defined');
-    }
-
-    return jwt.sign(
-      { 
-        id: this.id, 
-        username: this.username, 
-        email: this.email 
-      }, 
-      process.env.JWT_SECRET, 
-      { 
-        expiresIn: process.env.JWT_EXPIRATION || '1h' 
-      }
-    );
-  }
-}
+const User = mongoose.model<IUser>('User', UserSchema);
 
 export default User;

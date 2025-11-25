@@ -1,36 +1,29 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { JWT_CONFIG } from '../config/jwtConfig';
 
-interface TokenPayload {
-  id: string;
-  username: string;
-  email: string;
-}
+export const generateToken = (payload: any): string => {
+  return jwt.sign(payload, JWT_CONFIG.secret, {
+    expiresIn: JWT_CONFIG.expiresIn,
+    algorithm: JWT_CONFIG.algorithm
+  });
+};
 
-export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  // Get token from header
-  const token = req.header('Authorization')?.replace('Bearer ', '');
+export const verifyToken = (req: Request, res: Response, next: NextFunction) => {
+  const token = req.headers.authorization?.split(' ')[1];
 
-  // Check if no token
   if (!token) {
-    return res.status(401).json({ message: 'No token, authorization denied' });
+    return res.status(401).json({ message: 'No token provided' });
   }
 
   try {
-    // Verify token
-    if (!process.env.JWT_SECRET) {
-      throw new Error('JWT_SECRET is not defined');
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET) as TokenPayload;
-
-    // Add user from payload
+    const decoded = jwt.verify(token, JWT_CONFIG.secret);
     (req as any).user = decoded;
     next();
-  } catch (err) {
-    res.status(401).json({ message: 'Token is not valid' });
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      return res.status(401).json({ message: 'Token expired' });
+    }
+    return res.status(401).json({ message: 'Invalid token' });
   }
 };
-
-// Optional: Create a function to protect routes
-export const protectedRoute = [authMiddleware];

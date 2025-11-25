@@ -1,81 +1,76 @@
 import express, { Request, Response } from 'express';
+import { generateToken } from '../middleware/authMiddleware';
 import User from '../models/User';
-import { authMiddleware } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-// Registration endpoint
-router.post('/register', async (req: Request, res: Response) => {
-  try {
-    const { username, email, password } = req.body;
-
-    // Create user instance
-    const user = new User({ username, email, password });
-
-    // Hash password
-    await user.hashPassword();
-
-    // TODO: Save user to database (replace with your database logic)
-    // const savedUser = await userRepository.save(user);
-
-    // Generate token
-    const token = user.generateToken();
-
-    res.status(201).json({ 
-      message: 'User registered successfully', 
-      token 
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error during registration' });
-  }
-});
-
-// Login endpoint
 router.post('/login', async (req: Request, res: Response) => {
-  try {
-    const { email, password } = req.body;
+  const { email, password } = req.body;
 
-    // TODO: Fetch user from database (replace with your database logic)
-    // const user = await userRepository.findByEmail(email);
-    const user = new User({ 
-      id: 'mock-id', 
-      username: 'mockuser', 
-      email, 
-      password: await new User({ username: '', email: '', password }).hashPassword() 
-    });
+  try {
+    // Find user by email
+    const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Check password
+    // Check password (replace with proper password verification)
     const isMatch = await user.comparePassword(password);
 
     if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Generate token
-    const token = user.generateToken();
+    // Generate JWT token
+    const token = generateToken({
+      id: user._id,
+      email: user.email
+    });
 
     res.json({ 
-      message: 'Login successful', 
-      token 
+      token, 
+      user: { 
+        id: user._id, 
+        email: user.email 
+      } 
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error during login' });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
-// Protected route example
-router.get('/profile', authMiddleware, (req: Request, res: Response) => {
-  // Access authenticated user via (req as any).user
-  res.json({ 
-    message: 'Access to protected route', 
-    user: (req as any).user 
-  });
+router.post('/register', async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+
+  try {
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+
+    if (existingUser) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
+
+    // Create new user
+    const newUser = new User({ email, password });
+    await newUser.save();
+
+    // Generate JWT token
+    const token = generateToken({
+      id: newUser._id,
+      email: newUser.email
+    });
+
+    res.status(201).json({ 
+      token, 
+      user: { 
+        id: newUser._id, 
+        email: newUser.email 
+      } 
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 export default router;
