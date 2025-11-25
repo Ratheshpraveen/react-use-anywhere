@@ -3,13 +3,12 @@ import React from 'react';
 // Card component props interface for type safety
 export interface CardProps {
   title: string;
-  description?: string;
+  description: string;
   imageUrl?: string;
   onClick?: () => void;
   className?: string;
   variant?: 'default' | 'outlined' | 'elevated';
   size?: 'small' | 'medium' | 'large';
-  disabled?: boolean;
 }
 
 // Card component implementation
@@ -20,46 +19,52 @@ const Card: React.FC<CardProps> = ({
   onClick,
   className = '',
   variant = 'default',
-  size = 'medium',
-  disabled = false,
+  size = 'medium'
 }) => {
-  // Combine base classes with variant and size classes
-  const cardClasses = [
-    'card',
-    `card-${variant}`,
-    `card-${size}`,
-    className,
-    disabled ? 'card-disabled' : '',
-  ].filter(Boolean).join(' ');
+  const getVariantClasses = () => {
+    switch (variant) {
+      case 'outlined':
+        return 'border border-gray-300 rounded-lg';
+      case 'elevated':
+        return 'shadow-md rounded-lg';
+      default:
+        return 'bg-white rounded-lg';
+    }
+  };
 
-  // Handle click event with disabled state check
-  const handleClick = () => {
-    if (!disabled && onClick) {
-      onClick();
+  const getSizeClasses = () => {
+    switch (size) {
+      case 'small':
+        return 'w-48 p-2';
+      case 'large':
+        return 'w-96 p-6';
+      default:
+        return 'w-64 p-4';
     }
   };
 
   return (
     <div 
-      className={cardClasses} 
-      onClick={handleClick}
-      role={onClick ? 'button' : 'article'}
-      aria-disabled={disabled}
+      className={`
+        ${getVariantClasses()} 
+        ${getSizeClasses()} 
+        ${className} 
+        transition-all duration-300 
+        hover:shadow-lg 
+        cursor-${onClick ? 'pointer' : 'default'}
+      `}
+      onClick={onClick}
     >
       {imageUrl && (
-        <div className="card-image-container">
-          <img 
-            src={imageUrl} 
-            alt={title} 
-            className="card-image" 
-          />
-        </div>
+        <img 
+          src={imageUrl} 
+          alt={title} 
+          className="w-full h-48 object-cover rounded-t-lg mb-4" 
+        />
       )}
-      <div className="card-content">
-        <h3 className="card-title">{title}</h3>
-        {description && (
-          <p className="card-description">{description}</p>
-        )}
+      <div className="px-4 py-2">
+        <h3 className="text-xl font-semibold mb-2">{title}</h3>
+        <p className="text-gray-600">{description}</p>
       </div>
     </div>
   );
@@ -67,13 +72,11 @@ const Card: React.FC<CardProps> = ({
 
 // Default props for the Card component
 Card.defaultProps = {
-  description: '',
-  imageUrl: '',
-  onClick: undefined,
-  className: '',
   variant: 'default',
   size: 'medium',
-  disabled: false,
+  className: '',
+  onClick: undefined,
+  imageUrl: undefined
 };
 
 export default Card;
