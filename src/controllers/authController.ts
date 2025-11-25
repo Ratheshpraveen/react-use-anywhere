@@ -7,13 +7,13 @@ export const register = async (req: Request, res: Response) => {
     const { username, email, password } = req.body;
 
     // Check if user already exists
-    let user = await User.findOne({ $or: [{ email }, { username }] });
-    if (user) {
-      return res.status(400).json({ error: 'User already exists' });
+    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User already exists' });
     }
 
     // Create new user
-    user = new User({ username, email, password });
+    const user = new User({ username, email, password });
     await user.save();
 
     // Generate tokens
@@ -25,8 +25,8 @@ export const register = async (req: Request, res: Response) => {
       accessToken, 
       refreshToken 
     });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    res.status(500).json({ message: 'Error registering user', error: error });
   }
 };
 
@@ -34,16 +34,16 @@ export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
-    // Find user
+    // Find user by email
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     // Generate tokens
@@ -55,27 +55,29 @@ export const login = async (req: Request, res: Response) => {
       accessToken, 
       refreshToken 
     });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error });
   }
 };
 
 export const refreshToken = async (req: Request, res: Response) => {
-  try {
-    const { refreshToken } = req.body;
+  const { refreshToken } = req.body;
 
-    if (!refreshToken) {
-      return res.status(401).json({ error: 'Refresh token required' });
+  if (!refreshToken) {
+    return res.status(401).json({ message: 'Refresh token required' });
+  }
+
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET!) as { userId: string };
+    const user = await User.findById(decoded.userId);
+
+    if (!user) {
+      return res.status(403).json({ message: 'Invalid refresh token' });
     }
 
-    // Verify refresh token
-    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET!) as { userId: string };
-    
-    // Generate new access token
-    const newAccessToken = generateAccessToken(decoded.userId);
-
+    const newAccessToken = generateAccessToken(user._id.toString());
     res.json({ accessToken: newAccessToken });
-  } catch (error: any) {
-    res.status(403).json({ error: 'Invalid refresh token' });
+  } catch (error) {
+    res.status(403).json({ message: 'Invalid refresh token' });
   }
 };

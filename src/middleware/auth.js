@@ -1,28 +1,46 @@
-const { verifyToken } = require('../utils/tokenUtils');
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
 
-/**
- * Middleware to authenticate JWT token
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next middleware function
- */
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+dotenv.config();
 
-  if (token == null) {
-    return res.status(401).json({ error: 'No token provided' });
+// Middleware to verify JWT token
+export const verifyToken = (req, res, next) => {
+  const token = req.headers['authorization']?.split(' ')[1]; // Bearer TOKEN
+
+  if (!token) {
+    return res.status(403).json({ 
+      error: 'No token provided', 
+      message: 'Access denied. Authentication token is required.' 
+    });
   }
 
-  const decoded = verifyToken(token);
-  if (!decoded) {
-    return res.status(403).json({ error: 'Invalid or expired token' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ 
+        error: 'Token expired', 
+        message: 'Your authentication token has expired. Please log in again.' 
+      });
+    }
+    return res.status(401).json({ 
+      error: 'Invalid token', 
+      message: 'Unable to authenticate. Please log in again.' 
+    });
   }
-
-  req.user = decoded;
-  next();
 };
 
-module.exports = {
-  authenticateToken
+// Middleware for role-based access control
+export const requireRole = (roles) => {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ 
+        error: 'Forbidden', 
+        message: 'You do not have permission to access this resource.' 
+      });
+    }
+    next();
+  };
 };

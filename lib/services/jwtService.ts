@@ -1,67 +1,108 @@
 import jwt from 'jsonwebtoken';
-import Redis from 'ioredis';
+import { v4 as uuidv4 } from 'uuid';
 
 interface TokenPayload {
   userId: string;
-  role: string;
+  jti?: string;
+  type?: 'access' | 'refresh';
 }
 
-class JwtService {
-  private redis: Redis;
-  private accessTokenSecret: string;
-  private refreshTokenSecret: string;
+export class JWTService {
+  private static ACCESS_TOKEN_EXPIRY = '15m';
+  private static REFRESH_TOKEN_EXPIRY = '7d';
 
-  constructor() {
-    this.redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-    this.accessTokenSecret = process.env.ACCESS_TOKEN_SECRET || 'default_access_secret';
-    this.refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET || 'default_refresh_secret';
-  }
+  /**
+   * Generate an access token
+   * @param userId User's unique identifier
+   * @returns Access token string
+   */
+  static generateAccessToken(userId: string): string {
+    const payload: TokenPayload = {
+      userId,
+      jti: uuidv4(),
+      type: 'access'
+    };
 
-  generateAccessToken(payload: TokenPayload): string {
-    return jwt.sign(payload, this.accessTokenSecret, { 
-      expiresIn: process.env.ACCESS_TOKEN_EXPIRY || '15m' 
+    return jwt.sign(payload, process.env.JWT_SECRET!, {
+      expiresIn: this.ACCESS_TOKEN_EXPIRY,
+      algorithm: 'HS256'
     });
   }
 
-  generateRefreshToken(payload: TokenPayload): string {
-    const refreshToken = jwt.sign(payload, this.refreshTokenSecret, { 
-      expiresIn: process.env.REFRESH_TOKEN_EXPIRY || '7d' 
+  /**
+   * Generate a refresh token
+   * @param userId User's unique identifier
+   * @returns Refresh token string
+   */
+  static generateRefreshToken(userId: string): string {
+    const payload: TokenPayload = {
+      userId,
+      jti: uuidv4(),
+      type: 'refresh'
+    };
+
+    return jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET!, {
+      expiresIn: this.REFRESH_TOKEN_EXPIRY,
+      algorithm: 'HS256'
     });
-
-    // Store refresh token in Redis with user ID as key
-    this.redis.set(`refresh_token:${payload.userId}`, refreshToken, 'EX', 7 * 24 * 60 * 60);
-
-    return refreshToken;
   }
 
-  async verifyAccessToken(token: string): Promise<TokenPayload> {
+  /**
+   * Verify an access token
+   * @param token JWT token to verify
+   * @returns Decoded token payload
+   */
+  static verifyAccessToken(token: string): TokenPayload {
     try {
-      return jwt.verify(token, this.accessTokenSecret) as TokenPayload;
+      return jwt.verify(token, process.env.JWT_SECRET!, {
+        algorithms: ['HS256']
+      }) as TokenPayload;
     } catch (error) {
-      throw new Error('Invalid or expired access token');
-    }
-  }
-
-  async verifyRefreshToken(token: string): Promise<TokenPayload> {
-    try {
-      const decoded = jwt.verify(token, this.refreshTokenSecret) as TokenPayload;
-      
-      // Check if refresh token exists in Redis
-      const storedToken = await this.redis.get(`refresh_token:${decoded.userId}`);
-      
-      if (storedToken !== token) {
-        throw new Error('Refresh token is invalid');
+      if (error instanceof jwt.TokenExpiredError) {
+        throw new Error('Token expired');
       }
-
-      return decoded;
-    } catch (error) {
-      throw new Error('Invalid or expired refresh token');
+      if (error instanceof jwt.JsonWebTokenError) {
+        throw new Error('Invalid token');
+      }
+      throw error;
     }
   }
 
-  async invalidateRefreshToken(userId: string): Promise<void> {
-    await this.redis.del(`refresh_token:${userId}`);
+  /**
+   * Verify a refresh token
+   * @param token JWT refresh token to verify
+   * @returns Decoded token payload
+   */
+  static verifyRefreshToken(token: string): TokenPayload {
+    try {
+      return jwt.verify(token, process.env.REFRESH_TOKEN_SECRET!, {
+        algorithms: ['HS256']
+      }) as TokenPayload;
+    } catch (error) {
+      if (error instanceof jwt.TokenExpiredError) {
+        throw new Error('Refresh token expired');
+      }
+      if (error instanceof jwt.JsonWebTokenError) {
+        throw new Error('Invalid refresh token');
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Refresh access token using a valid refresh token
+   * @param refreshToken Current refresh token
+   * @returns New access and refresh tokens
+   */
+  static refreshTokens(refreshToken: string): { 
+    accessToken: string, 
+    refreshToken: string 
+  } {
+    const decoded = this.verifyRefreshToken(refreshToken);
+    
+    return {
+      accessToken: this.generateAccessToken(decoded.userId),
+      refreshToken: this.generateRefreshToken(decoded.userId)
+    };
   }
 }
-
-export default new JwtService();

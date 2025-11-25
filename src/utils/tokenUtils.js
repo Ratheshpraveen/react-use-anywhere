@@ -1,29 +1,33 @@
-const jwt = require('jsonwebtoken');
-const { JWT_SECRET, JWT_EXPIRATION } = require('../config/environment');
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
 
-/**
- * Generate a JWT token for a user
- * @param {Object} payload - User data to encode in the token
- * @returns {string} Generated JWT token
- */
-const generateToken = (payload) => {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRATION });
-};
+dotenv.config();
 
-/**
- * Verify and decode a JWT token
- * @param {string} token - JWT token to verify
- * @returns {Object} Decoded token payload
- */
-const verifyToken = (token) => {
+// Generate JWT token
+export const generateToken = (payload, expiresIn = '1h') => {
   try {
-    return jwt.verify(token, JWT_SECRET);
+    return jwt.sign(payload, process.env.JWT_SECRET, { 
+      expiresIn 
+    });
   } catch (error) {
-    return null;
+    console.error('Token generation error:', error);
+    throw new Error('Failed to generate authentication token');
   }
 };
 
-module.exports = {
-  generateToken,
-  verifyToken
+// Validate JWT token
+export const validateToken = (token) => {
+  try {
+    return jwt.verify(token, process.env.JWT_SECRET);
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      throw new Error('Token has expired');
+    }
+    throw new Error('Invalid token');
+  }
+};
+
+// Decode JWT token without verification (use carefully)
+export const decodeToken = (token) => {
+  return jwt.decode(token);
 };

@@ -1,48 +1,48 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import { JWTService } from '../services/jwtService';
 
-export interface IUser extends Document {
-  username: string;
+export interface UserData {
+  id: string;
   email: string;
   password: string;
-  role: string;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
-const UserSchema: Schema = new Schema({
-  username: { 
-    type: String, 
-    required: true, 
-    unique: true, 
-    trim: true, 
-    minlength: 3 
-  },
-  email: { 
-    type: String, 
-    required: true, 
-    unique: true, 
-    lowercase: true, 
-    trim: true 
-  },
-  password: { 
-    type: String, 
-    required: true 
-  },
-  role: { 
-    type: String, 
-    enum: ['user', 'admin', 'moderator'], 
-    default: 'user' 
+export class User {
+  private data: UserData;
+
+  constructor(userData: UserData) {
+    this.data = userData;
   }
-}, {
-  timestamps: true
-});
 
-// Optional: Add methods to the schema
-UserSchema.methods.comparePassword = async function(candidatePassword: string) {
-  const bcrypt = require('bcryptjs');
-  return bcrypt.compare(candidatePassword, this.password);
-};
+  /**
+   * Generate authentication tokens for the user
+   * @returns Object containing access and refresh tokens
+   */
+  generateTokens(): { 
+    accessToken: string, 
+    refreshToken: string 
+  } {
+    return {
+      accessToken: JWTService.generateAccessToken(this.data.id),
+      refreshToken: JWTService.generateRefreshToken(this.data.id)
+    };
+  }
 
-const User = mongoose.model<IUser>('User', UserSchema);
+  /**
+   * Validate user credentials
+   * @param password Password to check
+   * @returns Boolean indicating if credentials are valid
+   */
+  async validatePassword(password: string): Promise<boolean> {
+    // In a real implementation, use a secure password hashing library like bcrypt
+    return this.data.password === password;
+  }
 
-export default User;
+  /**
+   * Get user data without sensitive information
+   * @returns Sanitized user data
+   */
+  getSafeUserData() {
+    const { password, ...safeData } = this.data;
+    return safeData;
+  }
+}
