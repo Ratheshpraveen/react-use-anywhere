@@ -1,0 +1,1 @@
+Could you help me read the contents of src/components/Card.tsx? The previous grep command didn't show the full file contents.

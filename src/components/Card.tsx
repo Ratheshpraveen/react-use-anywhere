@@ -1,21 +1,33 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 
-// Interface for Card component props
+/**
+ * Defines the shape of Card component properties
+ */
 export interface CardProps {
   /**
    * Title of the card
    */
-  title?: string;
+  title: string;
 
   /**
-   * Content of the card
+   * Optional description or subtitle
    */
-  content?: string;
+  description?: string;
 
   /**
-   * Optional image URL for the card
+   * URL of the card's image
    */
   imageUrl?: string;
+
+  /**
+   * Alternative text for the image
+   */
+  imageAlt?: string;
+
+  /**
+   * Optional children to render inside the card
+   */
+  children?: ReactNode;
 
   /**
    * Optional click handler for the card
@@ -23,75 +35,76 @@ export interface CardProps {
   onClick?: () => void;
 
   /**
-   * Additional CSS classes for customization
+   * Optional custom class name for additional styling
    */
   className?: string;
+
+  /**
+   * Optional variant for different card styles
+   */
+  variant?: 'default' | 'outlined' | 'elevated';
 }
 
 /**
  * Card Component - A flexible and reusable card component
+ * 
  * @param props Card component properties
  * @returns Rendered Card component
  */
 export const Card: React.FC<CardProps> = ({
   title,
-  content,
+  description,
   imageUrl,
+  imageAlt,
+  children,
   onClick,
   className = '',
+  variant = 'default'
 }) => {
+  const cardClasses = `
+    card 
+    ${variant === 'outlined' ? 'card-outlined' : ''}
+    ${variant === 'elevated' ? 'card-elevated' : ''}
+    ${className}
+  `.trim();
+
   return (
     <div 
-      className={`card ${className}`} 
+      className={cardClasses} 
       onClick={onClick}
-      style={{
-        border: '1px solid #ddd',
-        borderRadius: '8px',
-        padding: '16px',
-        maxWidth: '300px',
-        boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-        cursor: onClick ? 'pointer' : 'default',
-      }}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
     >
       {imageUrl && (
-        <img 
-          src={imageUrl} 
-          alt={title || 'Card image'} 
-          style={{
-            width: '100%',
-            borderRadius: '8px',
-            marginBottom: '12px',
-          }}
-        />
+        <div className="card-image-container">
+          <img 
+            src={imageUrl} 
+            alt={imageAlt || title || 'Card image'} 
+            className="card-image"
+          />
+        </div>
       )}
-      {title && (
-        <h3 style={{ 
-          margin: '0 0 10px 0', 
-          fontSize: '1.2rem',
-          color: '#333' 
-        }}>
-          {title}
-        </h3>
-      )}
-      {content && (
-        <p style={{ 
-          margin: '0', 
-          color: '#666' 
-        }}>
-          {content}
-        </p>
-      )}
+      
+      <div className="card-content">
+        <h3 className="card-title">{title}</h3>
+        {description && (
+          <p className="card-description">{description}</p>
+        )}
+        {children && (
+          <div className="card-children">
+            {children}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
 
 // Default props for the Card component
 Card.defaultProps = {
-  title: '',
-  content: '',
-  imageUrl: '',
-  onClick: undefined,
+  variant: 'default',
   className: '',
+  imageAlt: '',
 };
 
 export default Card;
