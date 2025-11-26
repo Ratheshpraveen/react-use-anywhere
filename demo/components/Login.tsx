@@ -15,20 +15,14 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     setError('');
 
     try {
-      const response = await axios.post('/api/auth/login', { 
-        username, 
-        password 
-      });
+      const response = await axios.post('/api/auth/login', { username, password });
+      const { token } = response.data;
 
       // Store token in localStorage
-      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('token', token);
 
-      // Optional: Call success callback
-      onLoginSuccess?.(response.data.token);
-
-      // Reset form
-      setUsername('');
-      setPassword('');
+      // Call onLoginSuccess callback if provided
+      onLoginSuccess?.(token);
     } catch (err) {
       setError('Login failed. Please check your credentials.');
       console.error(err);
@@ -44,8 +38,8 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           <label>Username:</label>
           <input 
             type="text" 
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            value={username} 
+            onChange={(e) => setUsername(e.target.value)} 
             required 
           />
         </div>
@@ -53,8 +47,8 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           <label>Password:</label>
           <input 
             type="password" 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={password} 
+            onChange={(e) => setPassword(e.target.value)} 
             required 
           />
         </div>
