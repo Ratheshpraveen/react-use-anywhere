@@ -29,8 +29,9 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       // Reset form
       setUsername('');
       setPassword('');
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed');
+    } catch (err) {
+      setError('Login failed. Please check your credentials.');
+      console.error(err);
     }
   };
 
@@ -39,20 +40,24 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       <h2>Login</h2>
       {error && <p style={{ color: 'red' }}>{error}</p>}
       <form onSubmit={handleLogin}>
-        <input 
-          type="text" 
-          placeholder="Username" 
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required 
-        />
-        <input 
-          type="password" 
-          placeholder="Password" 
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required 
-        />
+        <div>
+          <label>Username:</label>
+          <input 
+            type="text" 
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required 
+          />
+        </div>
+        <div>
+          <label>Password:</label>
+          <input 
+            type="password" 
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required 
+          />
+        </div>
         <button type="submit">Login</button>
       </form>
     </div>
