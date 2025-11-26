@@ -1,34 +1,28 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyToken } from '../utils/tokenUtils';
+import jwt from 'jsonwebtoken';
 
-export function authenticateJWT(req: Request, res: Response, next: NextFunction) {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader) {
-    return res.status(401).json({ error: 'No token provided' });
-  }
-
-  const token = authHeader.split(' ')[1]; // Bearer TOKEN
-
-  const decoded = verifyToken(token);
-
-  if (!decoded) {
-    return res.status(403).json({ error: 'Invalid or expired token' });
-  }
-
-  // Attach user info to request for further use
-  req.user = decoded;
-  next();
+interface AuthenticatedRequest extends Request {
+  user?: any;
 }
 
-export function requireRole(roles: string[]) {
-  return (req: Request, res: Response, next: NextFunction) => {
-    const user = req.user;
+export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');
 
-    if (!user || !roles.includes(user.role || '')) {
-      return res.status(403).json({ error: 'Insufficient permissions' });
-    }
+  if (!token) {
+    return res.status(401).json({ error: 'No token, authorization denied' });
+  }
 
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+    req.user = decoded;
     next();
-  };
-}
+  } catch (error) {
+    res.status(401).json({ error: 'Token is not valid' });
+  }
+};
+
+export const generateToken = (payload: any): string => {
+  return jwt.sign(payload, process.env.JWT_SECRET as string, {
+    expiresIn: process.env.JWT_EXPIRATION || '1h'
+  });
+};

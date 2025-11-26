@@ -29,9 +29,8 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       // Reset form
       setUsername('');
       setPassword('');
-    } catch (err) {
-      setError('Login failed. Please check your credentials.');
-      console.error(err);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Login failed');
     }
   };
 

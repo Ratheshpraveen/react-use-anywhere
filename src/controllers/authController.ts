@@ -1,83 +1,74 @@
 import { Request, Response } from 'express';
-import { User, IUser } from '../models/User';
-import { generateAccessToken, generateRefreshToken } from '../middleware/authMiddleware';
+import bcrypt from 'bcrypt';
+import { generateToken } from '../middleware/authMiddleware';
 
-export const register = async (req: Request, res: Response) => {
-  try {
-    const { username, email, password } = req.body;
-
-    // Check if user already exists
-    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
-    if (existingUser) {
-      return res.status(400).json({ message: 'User already exists' });
-    }
-
-    // Create new user
-    const user = new User({ username, email, password });
-    await user.save();
-
-    // Generate tokens
-    const accessToken = generateAccessToken(user._id.toString());
-    const refreshToken = generateRefreshToken(user._id.toString());
-
-    res.status(201).json({ 
-      message: 'User registered successfully', 
-      accessToken, 
-      refreshToken 
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Error registering user', error: error });
+// Mock user database (replace with your actual database logic)
+const users = [
+  {
+    id: '1',
+    username: 'testuser',
+    password: '$2b$10$XYZ123' // hashed password
   }
-};
+];
 
 export const login = async (req: Request, res: Response) => {
-  try {
-    const { email, password } = req.body;
+  const { username, password } = req.body;
 
-    // Find user by email
-    const user = await User.findOne({ email });
+  try {
+    // Find user
+    const user = users.find(u => u.username === username);
     if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(400).json({ error: 'Invalid credentials' });
     }
 
     // Check password
-    const isMatch = await user.comparePassword(password);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(400).json({ error: 'Invalid credentials' });
     }
 
-    // Generate tokens
-    const accessToken = generateAccessToken(user._id.toString());
-    const refreshToken = generateRefreshToken(user._id.toString());
+    // Generate token
+    const token = generateToken({ id: user.id, username: user.username });
 
     res.json({ 
-      message: 'Login successful', 
-      accessToken, 
-      refreshToken 
+      token, 
+      user: { id: user.id, username: user.username } 
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
-export const refreshToken = async (req: Request, res: Response) => {
-  const { refreshToken } = req.body;
-
-  if (!refreshToken) {
-    return res.status(401).json({ message: 'Refresh token required' });
-  }
+export const register = async (req: Request, res: Response) => {
+  const { username, password } = req.body;
 
   try {
-    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET!) as { userId: string };
-    const user = await User.findById(decoded.userId);
-
-    if (!user) {
-      return res.status(403).json({ message: 'Invalid refresh token' });
+    // Check if user already exists
+    const existingUser = users.find(u => u.username === username);
+    if (existingUser) {
+      return res.status(400).json({ error: 'User already exists' });
     }
 
-    const newAccessToken = generateAccessToken(user._id.toString());
-    res.json({ accessToken: newAccessToken });
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create user (mock implementation)
+    const newUser = {
+      id: String(users.length + 1),
+      username,
+      password: hashedPassword
+    };
+    users.push(newUser);
+
+    // Generate token
+    const token = generateToken({ id: newUser.id, username: newUser.username });
+
+    res.status(201).json({ 
+      token, 
+      user: { id: newUser.id, username: newUser.username } 
+    });
   } catch (error) {
-    res.status(403).json({ message: 'Invalid refresh token' });
+    res.status(500).json({ error: 'Server error' });
   }
 };
