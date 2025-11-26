@@ -1,16 +1,22 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
-import { generateToken } from '../middleware/authMiddleware';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
 
-// This is a mock user database. In a real app, you'd use a real database
-const users: { [key: string]: { id: number, username: string, password: string } } = {};
+dotenv.config();
+
+// Mock user database (replace with your actual database logic)
+const users = [
+  { id: 1, username: 'testuser', password: '$2b$10$123456789' } // hashed password
+];
 
 export const register = async (req: Request, res: Response) => {
   try {
     const { username, password } = req.body;
 
     // Check if user already exists
-    if (users[username]) {
+    const existingUser = users.find(user => user.username === username);
+    if (existingUser) {
       return res.status(400).json({ error: 'User already exists' });
     }
 
@@ -18,22 +24,22 @@ export const register = async (req: Request, res: Response) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create user
-    const newUser = {
-      id: Object.keys(users).length + 1,
-      username,
-      password: hashedPassword
+    // Create user (mock implementation)
+    const newUser = { 
+      id: users.length + 1, 
+      username, 
+      password: hashedPassword 
     };
+    users.push(newUser);
 
-    users[username] = newUser;
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: newUser.id, username: newUser.username }, 
+      process.env.JWT_SECRET || '', 
+      { expiresIn: process.env.JWT_EXPIRATION }
+    );
 
-    // Generate token
-    const token = generateToken({ id: newUser.id, username });
-
-    res.status(201).json({ 
-      token, 
-      user: { id: newUser.id, username } 
-    });
+    res.status(201).json({ token });
   } catch (error) {
     res.status(500).json({ error: 'Server error during registration' });
   }
@@ -43,8 +49,8 @@ export const login = async (req: Request, res: Response) => {
   try {
     const { username, password } = req.body;
 
-    // Check if user exists
-    const user = users[username];
+    // Find user
+    const user = users.find(u => u.username === username);
     if (!user) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
@@ -55,13 +61,14 @@ export const login = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
-    // Generate token
-    const token = generateToken({ id: user.id, username });
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user.id, username: user.username }, 
+      process.env.JWT_SECRET || '', 
+      { expiresIn: process.env.JWT_EXPIRATION }
+    );
 
-    res.json({ 
-      token, 
-      user: { id: user.id, username } 
-    });
+    res.json({ token });
   } catch (error) {
     res.status(500).json({ error: 'Server error during login' });
   }
@@ -69,18 +76,20 @@ export const login = async (req: Request, res: Response) => {
 
 export const refreshToken = (req: Request, res: Response) => {
   try {
-    const { username } = req.body;
-    const user = users[username];
+    const { token } = req.body;
 
-    if (!user) {
-      return res.status(400).json({ error: 'User not found' });
-    }
+    // Verify existing token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || '');
 
     // Generate new token
-    const token = generateToken({ id: user.id, username });
+    const newToken = jwt.sign(
+      { id: decoded.id, username: decoded.username }, 
+      process.env.JWT_SECRET || '', 
+      { expiresIn: process.env.JWT_EXPIRATION }
+    );
 
-    res.json({ token });
+    res.json({ token: newToken });
   } catch (error) {
-    res.status(500).json({ error: 'Server error during token refresh' });
+    res.status(401).json({ error: 'Invalid token' });
   }
 };
