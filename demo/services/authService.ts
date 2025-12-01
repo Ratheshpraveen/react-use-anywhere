@@ -1,60 +1,76 @@
-import { createSingletonService, createTypedSingletonService } from '../../lib';
-import { goToLogin } from './navigationService';
-import { logServiceCall } from './logger';
-import type { AppHooks } from '../App';
+import JWTService from '../../lib/services/jwtService';
+import { LoginCredentials, JWTPayload, AuthTokens } from '../../lib/types';
 
-// Define the auth hook type
-type AuthHook = {
-  user: { name: string; email: string } | null;
-  isAuthenticated: boolean;
-  login: (name: string, email: string) => void;
-  logout: () => void;
-};
+// Mock user database (replace with actual backend call)
+const MOCK_USERS = [
+  { 
+    id: '1', 
+    email: 'user@example.com', 
+    password: 'password123', 
+    username: 'testuser',
+    role: 'user' 
+  }
+];
 
-// 🚀 STANDARD: Create a singleton service to use auth hook anywhere
-export const authService = createSingletonService<AuthHook>('auth');
+class AuthenticationService {
+  static async login(credentials: LoginCredentials): Promise<AuthTokens | null> {
+    // In a real app, this would be an API call
+    const user = MOCK_USERS.find(
+      u => u.email === credentials.email && u.password === credentials.password
+    );
 
-// 🆕 TYPE-SAFE VERSION: Create with compile-time type checking
-export const typedAuthService = createTypedSingletonService<AppHooks, 'auth'>('auth');
-
-// Helper functions you can use in any file
-export const checkAuth = () => {
-  logServiceCall('authService', 'checkAuth');
-  
-  return authService.use((auth) => {
-    const isAuthenticated = auth.isAuthenticated;
-    logServiceCall('authService', 'checkAuth.result', { isAuthenticated, user: auth.user });
-    
-    if (!isAuthenticated) {
-      console.log('User not authenticated, redirecting to login...');
-      goToLogin();
-      return false;
+    if (!user) {
+      return null;
     }
-    return true;
-  });
-};
 
-export const getCurrentUser = () => {
-  logServiceCall('authService', 'getCurrentUser');
-  
-  return authService.use((auth) => {
-    logServiceCall('authService', 'getCurrentUser.result', { user: auth.user });
-    return auth.user;
-  });
-};
+    const { password, ...safeUserData } = user;
+    const tokens = JWTService.generateTokenPair(safeUserData);
 
-export const simulateTokenExpiry = () => {
-  logServiceCall('authService', 'simulateTokenExpiry');
-  console.log('Simulating token expiry...');
-  
-  authService.use((auth) => {
-    auth.logout();
-    logServiceCall('authService', 'logout.fromTokenExpiry', { reason: 'token_expired' });
-    console.log('User logged out due to token expiry');
-  });
-  
-  // Redirect to login after a short delay
-  setTimeout(() => {
-    goToLogin();
-  }, 1000);
-};
+    // Store tokens in localStorage (consider more secure storage in production)
+    this.storeTokens(tokens);
+
+    return tokens;
+  }
+
+  static logout(): void {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+  }
+
+  static refreshTokens(): AuthTokens | null {
+    const refreshToken = localStorage.getItem('refreshToken');
+    
+    if (!refreshToken) {
+      return null;
+    }
+
+    return JWTService.refreshAccessToken(refreshToken);
+  }
+
+  static getCurrentUser(): JWTPayload | null {
+    const accessToken = localStorage.getItem('accessToken');
+    
+    if (!accessToken) {
+      return null;
+    }
+
+    return JWTService.extractUserFromToken(accessToken);
+  }
+
+  private static storeTokens(tokens: AuthTokens): void {
+    localStorage.setItem('accessToken', tokens.accessToken);
+    localStorage.setItem('refreshToken', tokens.refreshToken);
+  }
+
+  static isAuthenticated(): boolean {
+    const accessToken = localStorage.getItem('accessToken');
+    return !!accessToken && !this.isTokenExpired(accessToken);
+  }
+
+  private static isTokenExpired(token: string): boolean {
+    const decoded = JWTService.verifyToken(token);
+    return !decoded;
+  }
+}
+
+export default AuthenticationService;
