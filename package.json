@@ -123,6 +123,7 @@
   },
   "dependencies": {
     "@types/jsonwebtoken": "^9.0.10",
+    "axios": "^1.13.2",
     "jsonwebtoken": "^9.0.2"
   }
 }
