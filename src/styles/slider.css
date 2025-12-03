@@ -1,0 +1,27 @@
+/* Custom Slider Styles */
+.custom-slider {
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.slider-item {
+  padding: 10px;
+  text-align: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .custom-slider {
+    width: 100%;
+  }
+}
+
+/* Optional: Customize slider dots and arrows */
+.slick-dots li button:before {
+  color: #333;
+}
+
+.slick-prev:before,
+.slick-next:before {
+  color: #333;
+}
