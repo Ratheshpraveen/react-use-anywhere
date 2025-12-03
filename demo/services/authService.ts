@@ -1,60 +1,87 @@
-import { createSingletonService, createTypedSingletonService } from '../../lib';
-import { goToLogin } from './navigationService';
-import { logServiceCall } from './logger';
-import type { AppHooks } from '../App';
+import JWTService from '../../lib/services/jwtService';
+import { AuthState, UserProfile, CustomJWTPayload } from '../../lib/types';
 
-// Define the auth hook type
-type AuthHook = {
-  user: { name: string; email: string } | null;
-  isAuthenticated: boolean;
-  login: (name: string, email: string) => void;
-  logout: () => void;
-};
+class AuthService {
+  private static authState: AuthState = {
+    isAuthenticated: false,
+    user: null,
+    accessToken: null,
+    refreshToken: null
+  };
 
-// 🚀 STANDARD: Create a singleton service to use auth hook anywhere
-export const authService = createSingletonService<AuthHook>('auth');
+  static async login(email: string, password: string): Promise<AuthState> {
+    try {
+      // TODO: Replace with actual authentication logic (e.g., API call)
+      const isValidCredentials = this.validateCredentials(email, password);
+      
+      if (!isValidCredentials) {
+        throw new Error('Invalid credentials');
+      }
 
-// 🆕 TYPE-SAFE VERSION: Create with compile-time type checking
-export const typedAuthService = createTypedSingletonService<AppHooks, 'auth'>('auth');
+      const userProfile: UserProfile = {
+        id: 'user123', // Mock user ID
+        email,
+        name: 'John Doe',
+        role: 'user'
+      };
 
-// Helper functions you can use in any file
-export const checkAuth = () => {
-  logServiceCall('authService', 'checkAuth');
-  
-  return authService.use((auth) => {
-    const isAuthenticated = auth.isAuthenticated;
-    logServiceCall('authService', 'checkAuth.result', { isAuthenticated, user: auth.user });
-    
-    if (!isAuthenticated) {
-      console.log('User not authenticated, redirecting to login...');
-      goToLogin();
-      return false;
+      const payload: CustomJWTPayload = {
+        userId: userProfile.id,
+        email: userProfile.email,
+        role: userProfile.role
+      };
+
+      const accessToken = JWTService.generateAccessToken(payload);
+      const refreshToken = JWTService.generateRefreshToken(payload);
+
+      this.authState = {
+        isAuthenticated: true,
+        user: userProfile,
+        accessToken,
+        refreshToken
+      };
+
+      return this.authState;
+    } catch (error) {
+      this.logout();
+      throw error;
     }
-    return true;
-  });
-};
+  }
 
-export const getCurrentUser = () => {
-  logServiceCall('authService', 'getCurrentUser');
-  
-  return authService.use((auth) => {
-    logServiceCall('authService', 'getCurrentUser.result', { user: auth.user });
-    return auth.user;
-  });
-};
+  static logout(): void {
+    this.authState = {
+      isAuthenticated: false,
+      user: null,
+      accessToken: null,
+      refreshToken: null
+    };
+  }
 
-export const simulateTokenExpiry = () => {
-  logServiceCall('authService', 'simulateTokenExpiry');
-  console.log('Simulating token expiry...');
-  
-  authService.use((auth) => {
-    auth.logout();
-    logServiceCall('authService', 'logout.fromTokenExpiry', { reason: 'token_expired' });
-    console.log('User logged out due to token expiry');
-  });
-  
-  // Redirect to login after a short delay
-  setTimeout(() => {
-    goToLogin();
-  }, 1000);
-};
+  static refreshTokens(): AuthState | null {
+    const { refreshToken } = this.authState;
+    
+    if (!refreshToken) return null;
+
+    const newAccessToken = JWTService.refreshAccessToken(refreshToken);
+    
+    if (!newAccessToken) {
+      this.logout();
+      return null;
+    }
+
+    this.authState.accessToken = newAccessToken;
+    return this.authState;
+  }
+
+  static getAuthState(): AuthState {
+    return { ...this.authState };
+  }
+
+  // Mock credential validation - replace with actual validation
+  private static validateCredentials(email: string, password: string): boolean {
+    // Implement actual credential validation
+    return email === 'test@example.com' && password === 'password123';
+  }
+}
+
+export default AuthService;
