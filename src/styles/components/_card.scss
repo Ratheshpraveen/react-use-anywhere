@@ -1,0 +1,94 @@
+// Card Component Styles
+// Using BEM (Block Element Modifier) naming convention
+
+// Variables for consistent styling
+$card-border-radius: 8px;
+$card-box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+$card-padding-base: 16px;
+$card-margin-base: 16px;
+
+// Breakpoint mixins
+@mixin mobile {
+  @media (max-width: 576px) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media (min-width: 577px) and (max-width: 992px) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (min-width: 993px) {
+    @content;
+  }
+}
+
+.card {
+  // Base card styles
+  background-color: #ffffff;
+  border-radius: $card-border-radius;
+  box-shadow: $card-box-shadow;
+  padding: $card-padding-base;
+  margin: $card-margin-base 0;
+  width: 100%;
+  max-width: 400px;
+  transition: all 0.3s ease;
+
+  // Responsive considerations
+  @include mobile {
+    max-width: 100%;
+    padding: $card-padding-base / 2;
+  }
+
+  @include tablet {
+    max-width: 90%;
+  }
+
+  // Card elements
+  &__header {
+    margin-bottom: $card-padding-base / 2;
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  &__content {
+    line-height: 1.6;
+  }
+
+  &__footer {
+    margin-top: $card-padding-base;
+    text-align: right;
+  }
+
+  // Modifier classes
+  &--elevated {
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  &--compact {
+    padding: $card-padding-base / 2;
+    margin: $card-margin-base / 2 0;
+  }
+
+  &--primary {
+    background-color: #f0f4ff;
+    border-left: 4px solid #3f51b5;
+  }
+
+  &--secondary {
+    background-color: #f3f3f3;
+    border-left: 4px solid #9c9c9c;
+  }
+
+  // Interaction states
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
