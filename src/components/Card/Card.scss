@@ -1,0 +1,78 @@
+// Card Component SCSS Variables
+:root {
+  // Color Variables
+  --card-bg-color: #ffffff;
+  --card-shadow-color: rgba(0, 0, 0, 0.1);
+  --card-border-color: #e0e0e0;
+  
+  // Spacing Variables
+  --card-padding: 16px;
+  --card-border-radius: 8px;
+  
+  // Elevation Variables
+  --card-shadow-default: 0 2px 4px var(--card-shadow-color);
+  --card-shadow-elevated: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+// Card Mixins
+@mixin card-base {
+  background-color: var(--card-bg-color);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow-default);
+  padding: var(--card-padding);
+  transition: all 0.3s ease;
+}
+
+@mixin card-variant($bg-color, $shadow) {
+  background-color: $bg-color;
+  box-shadow: $shadow;
+}
+
+// Card Styles
+.card {
+  @include card-base;
+  
+  // Variants
+  &--default {
+    @include card-variant(var(--card-bg-color), var(--card-shadow-default));
+  }
+  
+  &--elevated {
+    @include card-variant(var(--card-bg-color), var(--card-shadow-elevated));
+  }
+  
+  &--outlined {
+    border: 1px solid var(--card-border-color);
+    box-shadow: none;
+  }
+  
+  // Responsive Design
+  @media screen and (max-width: 768px) {
+    padding: calc(var(--card-padding) * 0.75);
+    border-radius: calc(var(--card-border-radius) * 0.75);
+  }
+  
+  // Hover Effect
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 8px var(--card-shadow-color);
+  }
+  
+  // Content Styling
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  &__title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  
+  &__description {
+    color: #666;
+    line-height: 1.5;
+  }
+}
