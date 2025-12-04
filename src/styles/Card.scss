@@ -1,0 +1,110 @@
+// Card Component SCSS
+// Variables
+:root {
+  --card-bg-color: #ffffff;
+  --card-border-radius: 8px;
+  --card-shadow-default: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --card-shadow-elevated: 0 10px 15px rgba(0, 0, 0, 0.15);
+  --card-transition: all 0.3s ease;
+  
+  // Color variations
+  --card-border-color: #e0e0e0;
+  --card-hover-bg: #f5f5f5;
+  --card-active-bg: #eeeeee;
+}
+
+// Mixins
+@mixin card-base {
+  background-color: var(--card-bg-color);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow-default);
+  transition: var(--card-transition);
+  overflow: hidden;
+}
+
+@mixin card-hover {
+  &:hover {
+    background-color: var(--card-hover-bg);
+    box-shadow: var(--card-shadow-elevated);
+    transform: translateY(-4px);
+  }
+}
+
+// Card Component Styles
+.card {
+  @include card-base;
+  
+  // Default card layout using flexbox
+  display: flex;
+  flex-direction: column;
+  
+  // Card variations
+  &--default {
+    border: 1px solid var(--card-border-color);
+  }
+  
+  &--elevated {
+    box-shadow: var(--card-shadow-elevated);
+  }
+  
+  &--outlined {
+    border: 2px solid var(--card-border-color);
+    background-color: transparent;
+  }
+  
+  // Card states
+  @include card-hover;
+  
+  &:active {
+    background-color: var(--card-active-bg);
+    transform: scale(0.98);
+  }
+  
+  &:focus-visible {
+    outline: 2px solid blue;
+    outline-offset: 2px;
+  }
+  
+  // Card content areas
+  &__header {
+    padding: 16px;
+    border-bottom: 1px solid var(--card-border-color);
+  }
+  
+  &__content {
+    padding: 16px;
+    flex-grow: 1;
+  }
+  
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    padding: 16px;
+    gap: 8px;
+  }
+  
+  // Responsive considerations
+  @media (max-width: 600px) {
+    width: 100%;
+    margin: 0 auto;
+  }
+  
+  // Modifier classes
+  &--disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  
+  &--selected {
+    border-color: blue;
+    box-shadow: 0 0 0 2px blue;
+  }
+}
+
+// Image within card
+.card__image {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
