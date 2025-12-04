@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Component Showcase</title>
+    <link rel="stylesheet" href="../styles/main.scss">
+</head>
+<body>
+    <div class="container">
+        <h1>Card Component Variations</h1>
+
+        <!-- Default Card -->
+        <div class="card">
+            <div class="card__header">
+                <h2 class="card__title">Default Card</h2>
+            </div>
+            <div class="card__content">
+                <p>This is a standard card with default styling.</p>
+            </div>
+            <div class="card__footer">
+                <button>Learn More</button>
+            </div>
+        </div>
+
+        <!-- Elevated Card -->
+        <div class="card card--elevated">
+            <div class="card__header">
+                <h2 class="card__title">Elevated Card</h2>
+            </div>
+            <div class="card__content">
+                <p>This card has a more pronounced shadow for depth.</p>
+            </div>
+            <div class="card__footer">
+                <button>View Details</button>
+            </div>
+        </div>
+
+        <!-- Outlined Card -->
+        <div class="card card--outlined">
+            <div class="card__header">
+                <h2 class="card__title">Outlined Card</h2>
+            </div>
+            <div class="card__content">
+                <p>This card has a border instead of a shadow.</p>
+            </div>
+            <div class="card__footer">
+                <button>Read More</button>
+            </div>
+        </div>
+
+        <!-- Disabled Card -->
+        <div class="card card--disabled">
+            <div class="card__header">
+                <h2 class="card__title">Disabled Card</h2>
+            </div>
+            <div class="card__content">
+                <p>This card is in a disabled state.</p>
+            </div>
+            <div class="card__footer">
+                <button disabled>Unavailable</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

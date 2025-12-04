@@ -1,0 +1,69 @@
+// Card Component Styles
+@use '../abstracts/variables' as vars;
+
+.card {
+  // Base card styles
+  background-color: vars.$color-white;
+  border-radius: vars.$border-radius-medium;
+  box-shadow: vars.$box-shadow-default;
+  padding: vars.$spacing-medium;
+  margin-bottom: vars.$spacing-medium;
+  transition: all 0.3s ease;
+
+  // Card variations
+  &--elevated {
+    box-shadow: vars.$box-shadow-elevated;
+    transform: translateY(-4px);
+  }
+
+  &--outlined {
+    border: 1px solid vars.$color-border-light;
+    box-shadow: none;
+  }
+
+  // Card states
+  &:hover {
+    box-shadow: vars.$box-shadow-hover;
+    cursor: pointer;
+  }
+
+  // Card elements
+  &__header {
+    margin-bottom: vars.$spacing-small;
+    border-bottom: 1px solid vars.$color-border-light;
+    padding-bottom: vars.$spacing-small;
+  }
+
+  &__title {
+    font-size: vars.$font-size-large;
+    font-weight: bold;
+    color: vars.$color-text-primary;
+  }
+
+  &__content {
+    margin: vars.$spacing-small 0;
+  }
+
+  &__footer {
+    margin-top: vars.$spacing-small;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  // Responsive considerations
+  @media (max-width: vars.$breakpoint-mobile) {
+    padding: vars.$spacing-small;
+    margin-bottom: vars.$spacing-small;
+  }
+
+  // Disabled state
+  &--disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    
+    &:hover {
+      box-shadow: vars.$box-shadow-default;
+      transform: none;
+    }
+  }
+}
