@@ -43,10 +43,7 @@
     "utility",
     "production-ready"
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/akhshyganesh/react-use-anywhere.git"
-  },
+  "repository": "git+https://github.com/akhshyganesh/react-use-anywhere.git",
   "bugs": {
     "url": "https://github.com/akhshyganesh/react-use-anywhere/issues"
   },
@@ -122,7 +119,15 @@
     ]
   },
   "dependencies": {
+    "@types/bcryptjs": "^3.0.0",
     "@types/jsonwebtoken": "^9.0.10",
-    "jsonwebtoken": "^9.0.2"
+    "bcryptjs": "^3.0.3",
+    "express-jwt": "^8.5.1",
+    "jsonwebtoken": "^9.0.3"
+  },
+  "directories": {
+    "example": "examples",
+    "lib": "lib",
+    "test": "test"
   }
 }
