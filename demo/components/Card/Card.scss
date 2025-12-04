@@ -1,0 +1,68 @@
+// Card Component Styles
+:root {
+  --card-bg-color: #ffffff;
+  --card-border-radius: 12px;
+  --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --card-padding: 20px;
+  --card-hover-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+}
+
+.card {
+  background-color: var(--card-bg-color);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow);
+  padding: var(--card-padding);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    box-shadow: var(--card-hover-shadow);
+    transform: translateY(-5px);
+  }
+  
+  &__header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    
+    &-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0;
+    }
+    
+    &-icon {
+      margin-right: 10px;
+      font-size: 1.5rem;
+    }
+  }
+  
+  &__content {
+    color: #333;
+    line-height: 1.6;
+  }
+  
+  &__footer {
+    margin-top: 15px;
+    display: flex;
+    justify-content: flex-end;
+    
+    &-actions {
+      display: flex;
+      gap: 10px;
+    }
+  }
+  
+  // Variant modifiers
+  &--elevated {
+    box-shadow: var(--card-shadow);
+  }
+  
+  &--outlined {
+    border: 1px solid #e0e0e0;
+    background-color: transparent;
+  }
+  
+  &--compact {
+    padding: 10px;
+  }
+}
