@@ -1,0 +1,69 @@
+// Card Component Styles
+
+// Variables for card customization
+$card-background: #ffffff;
+$card-border-radius: 8px;
+$card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+$card-padding: 16px;
+
+// Base card styles
+.card {
+  background-color: $card-background;
+  border-radius: $card-border-radius;
+  box-shadow: $card-shadow;
+  padding: $card-padding;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+
+  // Responsive considerations
+  @media (max-width: 768px) {
+    padding: 12px;
+  }
+
+  // Card content layout
+  &__content {
+    display: flex;
+    flex-direction: column;
+  }
+
+  // Card title
+  &__title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  // Card body
+  &__body {
+    font-size: 1rem;
+    color: #333;
+  }
+}
+
+// Modifier classes
+.card {
+  // Elevated variant
+  &--elevated {
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  // Bordered variant
+  &--bordered {
+    border: 1px solid #e0e0e0;
+  }
+
+  // Clickable variant
+  &--clickable {
+    cursor: pointer;
+    
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    &:active {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+    }
+  }
+}
