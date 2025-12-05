@@ -1,0 +1,18 @@
+// Global SCSS Mixins
+@mixin flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+@mixin responsive-font-size($mobile, $tablet, $desktop) {
+  font-size: $mobile;
+  
+  @media (min-width: 576px) {
+    font-size: $tablet;
+  }
+  
+  @media (min-width: 992px) {
+    font-size: $desktop;
+  }
+}

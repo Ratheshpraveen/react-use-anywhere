@@ -1,0 +1,70 @@
+// Card Component Styles
+// Using BEM (Block Element Modifier) naming convention
+
+$card-background: #ffffff;
+$card-shadow-color: rgba(0, 0, 0, 0.1);
+$card-border-radius: 8px;
+$card-padding: 16px;
+$card-margin: 16px;
+$card-hover-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+
+.card {
+  background-color: $card-background;
+  border-radius: $card-border-radius;
+  box-shadow: 0 2px 4px $card-shadow-color;
+  margin: $card-margin;
+  padding: $card-padding;
+  transition: all 0.3s ease;
+
+  // Responsive considerations
+  @media (max-width: 768px) {
+    margin: $card-margin / 2;
+    padding: $card-padding / 2;
+  }
+
+  // Hover state
+  &:hover {
+    box-shadow: $card-hover-shadow;
+    transform: translateY(-4px);
+  }
+
+  // Active state
+  &:active {
+    transform: scale(0.98);
+  }
+
+  // Card elements
+  &__header {
+    margin-bottom: 12px;
+    border-bottom: 1px solid lighten($card-shadow-color, 30%);
+    padding-bottom: 8px;
+  }
+
+  &__title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #333;
+  }
+
+  &__content {
+    line-height: 1.6;
+    color: #666;
+  }
+
+  &__footer {
+    margin-top: 12px;
+    text-align: right;
+    border-top: 1px solid lighten($card-shadow-color, 30%);
+    padding-top: 8px;
+  }
+
+  // Modifier classes
+  &--elevated {
+    box-shadow: 0 4px 6px $card-shadow-color;
+  }
+
+  &--compact {
+    padding: $card-padding / 2;
+    margin: $card-margin / 2;
+  }
+}
