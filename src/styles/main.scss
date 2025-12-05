@@ -1,0 +1,9 @@
+// Main SCSS Entry Point
+
+// Import base styles
+@import 'base/reset';
+@import 'base/variables';
+@import 'base/typography';
+
+// Import component styles
+@import 'components/card';
