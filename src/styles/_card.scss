@@ -1,0 +1,95 @@
+// Card Component Styles
+
+// Variables for consistent theming
+$card-background: #ffffff;
+$card-border-radius: 8px;
+$card-shadow-default: 0 4px 6px rgba(0, 0, 0, 0.1);
+$card-shadow-elevated: 0 10px 15px rgba(0, 0, 0, 0.15);
+$card-padding: 16px;
+
+// Mixins for reusable card styles
+@mixin card-base {
+  background-color: $card-background;
+  border-radius: $card-border-radius;
+  box-shadow: $card-shadow-default;
+  padding: $card-padding;
+  transition: all 0.3s ease;
+}
+
+@mixin card-hover {
+  &:hover {
+    box-shadow: $card-shadow-elevated;
+    transform: translateY(-5px);
+  }
+}
+
+// Base card class
+.card {
+  @include card-base;
+  
+  // Responsive considerations
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 16px;
+
+  // Hover interaction
+  @include card-hover;
+
+  // Accessibility and focus state
+  &:focus {
+    outline: 2px solid blue;
+    outline-offset: 2px;
+  }
+}
+
+// Card modifier classes
+.card {
+  // Elevated variant
+  &--elevated {
+    @extend .card;
+    box-shadow: $card-shadow-elevated;
+  }
+
+  // Outlined variant
+  &--outlined {
+    @extend .card;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    box-shadow: none;
+  }
+
+  // Compact variant
+  &--compact {
+    @extend .card;
+    padding: 8px;
+  }
+
+  // Card content layout
+  &__header {
+    margin-bottom: 12px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    padding-bottom: 8px;
+  }
+
+  &__title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  &__content {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  &__image {
+    width: 100%;
+    border-radius: $card-border-radius;
+    margin-bottom: 12px;
+  }
+
+  // Responsive utility classes
+  &--full-width {
+    width: 100%;
+    max-width: none;
+  }
+}
