@@ -1,0 +1,120 @@
+// Card Component Styles
+// Using BEM (Block Element Modifier) naming convention
+
+// Variables for consistent styling
+$card-border-radius: 8px;
+$card-padding: 16px;
+$card-margin: 16px;
+
+// Color variables
+$color-white: #ffffff;
+$color-gray-100: #f5f5f5;
+$color-gray-200: #e0e0e0;
+$color-primary: #3498db;
+$color-secondary: #2ecc71;
+$color-shadow: rgba(0, 0, 0, 0.1);
+
+// Mixins for reusable styles
+@mixin card-base {
+  border-radius: $card-border-radius;
+  padding: $card-padding;
+  margin: $card-margin;
+  background-color: $color-white;
+  box-shadow: 0 4px 6px $color-shadow;
+  transition: all 0.3s ease;
+}
+
+@mixin card-hover {
+  &:hover {
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-4px);
+  }
+}
+
+// Base card styles
+.card {
+  @include card-base;
+  @include card-hover;
+
+  // Card content
+  &__header {
+    margin-bottom: 12px;
+    border-bottom: 1px solid $color-gray-200;
+    padding-bottom: 8px;
+  }
+
+  &__body {
+    margin: 12px 0;
+  }
+
+  &__footer {
+    margin-top: 12px;
+    border-top: 1px solid $color-gray-200;
+    padding-top: 8px;
+  }
+
+  // Responsive considerations
+  @media (max-width: 768px) {
+    margin: $card-margin / 2;
+    padding: $card-padding / 2;
+  }
+}
+
+// Card Modifiers
+.card {
+  // Primary Card
+  &--primary {
+    border-left: 4px solid $color-primary;
+    background-color: lighten($color-primary, 45%);
+  }
+
+  // Secondary Card
+  &--secondary {
+    border-left: 4px solid $color-secondary;
+    background-color: lighten($color-secondary, 45%);
+  }
+
+  // Outlined Card
+  &--outlined {
+    border: 1px solid $color-gray-200;
+    box-shadow: none;
+
+    &:hover {
+      border-color: $color-primary;
+    }
+  }
+
+  // Elevated Card
+  &--elevated {
+    box-shadow: 0 10px 20px $color-shadow;
+    transform: translateY(-5px);
+  }
+
+  // Disabled state
+  &--disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+}
+
+// Responsive Typography
+.card {
+  &__title {
+    font-size: 1.25rem;
+    font-weight: bold;
+
+    @media (max-width: 480px) {
+      font-size: 1rem;
+    }
+  }
+
+  &__text {
+    font-size: 1rem;
+    line-height: 1.5;
+
+    @media (max-width: 480px) {
+      font-size: 0.875rem;
+    }
+  }
+}
