@@ -1,0 +1,54 @@
+// Card Component Styles
+
+// Variables
+$card-border-radius: 8px;
+$card-padding: 16px;
+$card-shadow-default: 0 4px 6px rgba(0, 0, 0, 0.1);
+$card-shadow-elevated: 0 10px 15px rgba(0, 0, 0, 0.15);
+$card-transition: all 0.3s ease;
+
+// Mixins for reusable styles
+@mixin card-base {
+  border-radius: $card-border-radius;
+  padding: $card-padding;
+  box-shadow: $card-shadow-default;
+  background-color: #ffffff;
+  transition: $card-transition;
+}
+
+@mixin card-hover {
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: $card-shadow-elevated;
+  }
+}
+
+// Base card class
+.card {
+  @include card-base;
+  width: 100%;
+  max-width: 400px;
+  margin: 16px;
+  
+  @include card-hover;
+
+  // Responsive adjustments
+  @media (max-width: 768px) {
+    max-width: 100%;
+    margin: 8px;
+  }
+
+  // Modifier classes
+  &--elevated {
+    box-shadow: $card-shadow-elevated;
+  }
+
+  &--bordered {
+    border: 1px solid #e0e0e0;
+  }
+
+  &--compact {
+    padding: 8px;
+    max-width: 300px;
+  }
+}
