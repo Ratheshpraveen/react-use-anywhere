@@ -1,0 +1,105 @@
+// Card Component Styles using SCSS
+// BEM Naming Convention and Responsive Design
+
+// Color Palette
+$card-colors: (
+  default: (
+    background: #ffffff,
+    text: #333333,
+    border: #e0e0e0
+  ),
+  elevated: (
+    background: #ffffff,
+    text: #333333,
+    shadow: rgba(0, 0, 0, 0.1)
+  ),
+  outlined: (
+    background: #ffffff,
+    text: #333333,
+    border: #1976d2
+  )
+);
+
+// Card Variables
+$card-border-radius: 8px;
+$card-box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+$card-padding: 16px;
+$card-margin: 16px;
+
+// Typography
+$card-font-family: 'Arial', sans-serif;
+$card-font-sizes: (
+  title: 1.25rem,
+  body: 1rem,
+  caption: 0.875rem
+);
+
+// Mixins for Card Variations
+@mixin card-base {
+  border-radius: $card-border-radius;
+  font-family: $card-font-family;
+  margin: $card-margin;
+  padding: $card-padding;
+  box-sizing: border-box;
+}
+
+@mixin card-default {
+  background-color: map-get(map-get($card-colors, default), background);
+  color: map-get(map-get($card-colors, default), text);
+  border: 1px solid map-get(map-get($card-colors, default), border);
+}
+
+@mixin card-elevated {
+  @include card-default;
+  box-shadow: $card-box-shadow;
+  transition: box-shadow 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+  }
+}
+
+@mixin card-outlined {
+  background-color: map-get(map-get($card-colors, outlined), background);
+  color: map-get(map-get($card-colors, outlined), text);
+  border: 2px solid map-get(map-get($card-colors, outlined), border);
+}
+
+// Card Component Styles
+.card {
+  @include card-base;
+  @include card-default;
+
+  // Card Elements
+  &__title {
+    font-size: map-get($card-font-sizes, title);
+    font-weight: bold;
+    margin-bottom: 12px;
+  }
+
+  &__content {
+    font-size: map-get($card-font-sizes, body);
+    line-height: 1.5;
+  }
+
+  &__footer {
+    font-size: map-get($card-font-sizes, caption);
+    margin-top: 12px;
+    text-align: right;
+  }
+
+  // Card Modifiers
+  &--elevated {
+    @include card-elevated;
+  }
+
+  &--outlined {
+    @include card-outlined;
+  }
+
+  // Responsive Considerations
+  @media (max-width: 600px) {
+    margin: 8px;
+    padding: 12px;
+  }
+}
