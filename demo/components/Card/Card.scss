@@ -1,0 +1,57 @@
+// Variables
+$card-border-radius: 8px;
+$card-shadow-color: rgba(0, 0, 0, 0.1);
+$primary-color: #3498db;
+$text-color: #333;
+$background-color: #fff;
+
+// Mixins
+@mixin flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.card {
+  width: 300px;
+  background-color: $background-color;
+  border-radius: $card-border-radius;
+  box-shadow: 0 4px 6px $card-shadow-color;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  &__image {
+    width: 100%;
+    height: 200px;
+    @include flex-center;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  &__content {
+    padding: 16px;
+  }
+
+  &__title {
+    color: $primary-color;
+    font-size: 1.25rem;
+    margin-bottom: 8px;
+    font-weight: bold;
+  }
+
+  &__description {
+    color: $text-color;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+}
