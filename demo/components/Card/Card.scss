@@ -1,0 +1,71 @@
+// Card Component Styles
+:root {
+  --card-bg-color: #ffffff;
+  --card-border-color: #e0e0e0;
+  --card-shadow-color: rgba(0, 0, 0, 0.1);
+  --card-hover-shadow-color: rgba(0, 0, 0, 0.2);
+  --card-border-radius: 8px;
+}
+
+.card {
+  background-color: var(--card-bg-color);
+  border-radius: var(--card-border-radius);
+  border: 1px solid var(--card-border-color);
+  box-shadow: 0 4px 6px var(--card-shadow-color);
+  transition: all 0.3s ease;
+  overflow: hidden;
+
+  &:hover {
+    box-shadow: 0 6px 12px var(--card-hover-shadow-color);
+    transform: translateY(-5px);
+  }
+
+  &__header {
+    padding: 16px;
+    border-bottom: 1px solid var(--card-border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    &-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0;
+    }
+  }
+
+  &__body {
+    padding: 16px;
+
+    &--padded {
+      padding: 16px;
+    }
+
+    &--no-padding {
+      padding: 0;
+    }
+  }
+
+  &__footer {
+    padding: 16px;
+    border-top: 1px solid var(--card-border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  // Variants
+  &--elevated {
+    box-shadow: 0 8px 16px var(--card-shadow-color);
+  }
+
+  &--outlined {
+    border: 2px solid var(--card-border-color);
+    box-shadow: none;
+  }
+
+  // Responsive
+  @media (max-width: 768px) {
+    border-radius: 4px;
+  }
+}
