@@ -1,0 +1,61 @@
+// Card Component Styles
+
+// Variables for easy customization
+$card-bg-color: #ffffff;
+$card-shadow-color: rgba(0, 0, 0, 0.1);
+$card-border-radius: 8px;
+$card-padding: 16px;
+$card-hover-shadow: 0 8px 16px $card-shadow-color;
+
+.card {
+  background-color: $card-bg-color;
+  border-radius: $card-border-radius;
+  box-shadow: 0 4px 6px $card-shadow-color;
+  padding: $card-padding;
+  width: 100%;
+  max-width: 400px;
+  margin: 16px;
+  transition: all 0.3s ease;
+
+  // Hover effect
+  &:hover {
+    box-shadow: $card-hover-shadow;
+    transform: translateY(-5px);
+  }
+
+  // Responsive design
+  @media screen and (max-width: 768px) {
+    max-width: 100%;
+    margin: 16px 0;
+    padding: 12px;
+  }
+
+  // Nested elements example
+  &__title {
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin-bottom: 12px;
+    color: #333;
+  }
+
+  &__content {
+    font-size: 1rem;
+    color: #666;
+    line-height: 1.5;
+  }
+
+  // Active state
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+// Modifier classes for different card variations
+.card--elevated {
+  box-shadow: 0 8px 16px $card-shadow-color;
+}
+
+.card--compact {
+  padding: 12px;
+  max-width: 300px;
+}
