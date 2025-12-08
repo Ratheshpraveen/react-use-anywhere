@@ -1,0 +1,93 @@
+// Card Component Styles
+
+// Variables
+$card-border-radius: 8px;
+$card-box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+$card-padding: 16px;
+$card-background: #ffffff;
+$card-border-color: #e0e0e0;
+
+// Breakpoints
+$breakpoint-mobile: 576px;
+$breakpoint-tablet: 768px;
+$breakpoint-desktop: 992px;
+
+// Mixins
+@mixin flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+// Base Card Styles
+.card {
+  background-color: $card-background;
+  border-radius: $card-border-radius;
+  box-shadow: $card-box-shadow;
+  border: 1px solid $card-border-color;
+  padding: $card-padding;
+  margin-bottom: $card-padding;
+  transition: all 0.3s ease;
+
+  // Hover effect
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  // Card Header
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $card-padding / 2;
+    
+    &-title {
+      font-size: 1.25rem;
+      font-weight: bold;
+      color: #333;
+    }
+  }
+
+  // Card Body
+  &__body {
+    padding: $card-padding / 2 0;
+    
+    p {
+      margin-bottom: 12px;
+      line-height: 1.6;
+      color: #666;
+    }
+  }
+
+  // Card Footer
+  &__footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: $card-padding / 2;
+    border-top: 1px solid $card-border-color;
+  }
+
+  // Responsive Variations
+  @media (max-width: $breakpoint-mobile) {
+    padding: $card-padding / 2;
+    
+    &__header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+
+  // Modifier Classes
+  &--elevated {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  &--compact {
+    padding: $card-padding / 2;
+  }
+
+  &--no-border {
+    border: none;
+  }
+}
