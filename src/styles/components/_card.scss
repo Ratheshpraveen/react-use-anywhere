@@ -1,0 +1,62 @@
+// Card Component Styles
+// Using BEM (Block Element Modifier) naming convention
+
+.card {
+  // Base card styles
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 400px;
+  padding: 16px;
+  margin: 16px 0;
+  transition: all 0.3s ease;
+
+  // Card content layout
+  &__header {
+    margin-bottom: 12px;
+    font-weight: bold;
+  }
+
+  &__body {
+    flex-grow: 1;
+  }
+
+  &__footer {
+    margin-top: 12px;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  // Modifier: Elevated Card
+  &--elevated {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    
+    &:hover {
+      box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  // Modifier: Outlined Card
+  &--outlined {
+    border: 1px solid #e0e0e0;
+    
+    &:hover {
+      border-color: #c0c0c0;
+    }
+  }
+
+  // Responsive variations
+  @media screen and (max-width: 600px) {
+    max-width: 100%;
+    margin: 8px 0;
+    padding: 12px;
+  }
+
+  // Active state
+  &:active {
+    transform: scale(0.98);
+  }
+}
