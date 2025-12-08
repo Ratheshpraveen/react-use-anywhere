@@ -33,3 +33,5 @@ export type {
   ServiceFactory,
   TypedServiceFactory
 } from './types';
+export { JWTService } from './services/jwtService';
+export { AuthenticationService, authenticationService } from './services/authenticationService';
