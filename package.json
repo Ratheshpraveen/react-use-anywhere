@@ -122,7 +122,9 @@
     ]
   },
   "dependencies": {
+    "@types/bcryptjs": "^3.0.0",
     "@types/jsonwebtoken": "^9.0.10",
-    "jsonwebtoken": "^9.0.2"
+    "bcryptjs": "^3.0.3",
+    "jsonwebtoken": "^9.0.3"
   }
 }
