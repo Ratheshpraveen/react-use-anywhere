@@ -13,6 +13,8 @@ import {
 } from '../services/themeService';
 import { logger } from '../services/logger';
 import { DebugPanel } from './DebugPanel';
+import { Card } from './Card';
+
 
 interface LogEntry {
   id: number;
@@ -81,6 +83,11 @@ export const Home: React.FC = () => {
     animateButton('showUser');
     const user = getCurrentUser();
     alert(`Current user: ${user?.name || 'None'} (${user?.email || 'N/A'})`);
+  };
+
+  const handleCardClick = () => {
+    animateButton('cardClick');
+    alert("Card clicked!");
   };
 
   const handleGoToLogin = () => {
@@ -217,6 +224,27 @@ export const Home: React.FC = () => {
             </span>
           )}
         </button>
+      </div>
+
+      <div style={{ 
+        display: "flex", 
+        flexWrap: "wrap", 
+        gap: "1rem", 
+        marginTop: "2rem" 
+      }}>
+        <Card 
+          title="Welcome to React Use Anywhere" 
+          description="A powerful library that lets you use React hooks anywhere in your codebase!" 
+          imageUrl="https://via.placeholder.com/400x200?text=React+Use+Anywhere" 
+          tags={["React", "Hooks", "Services"]} 
+          onClick={handleCardClick} 
+        />
+        <Card 
+          title="Service-Driven Architecture" 
+          description="Create singleton services and use hooks from any file, even non-React files." 
+          imageUrl="https://via.placeholder.com/400x200?text=Service+Architecture" 
+          tags={["Services", "Hooks", "Architecture"]} 
+        />
       </div>
 
       <DebugPanel logs={logs} onClear={clearLogs} />
