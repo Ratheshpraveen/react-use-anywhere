@@ -122,7 +122,10 @@
     ]
   },
   "dependencies": {
+    "@mui/x-data-grid": "^8.22.1",
     "@types/jsonwebtoken": "^9.0.10",
-    "jsonwebtoken": "^9.0.2"
+    "@types/recharts": "^2.0.1",
+    "jsonwebtoken": "^9.0.2",
+    "recharts": "^3.6.0"
   }
 }
