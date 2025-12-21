@@ -1,76 +1,96 @@
-import React from 'react';
-import { AppBar, Toolbar, Typography, InputBase, Button, Avatar, Menu, MenuItem } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
+import React, { useContext } from 'react';
+import { 
+  AppBar, 
+  Toolbar, 
+  Typography, 
+  Button, 
+  Avatar, 
+  IconButton, 
+  Box,
+  TextField,
+  Menu,
+  MenuItem
+} from '@mui/material';
+import { 
+  Search as SearchIcon, 
+  Brightness4 as DarkModeIcon, 
+  Brightness7 as LightModeIcon 
+} from '@mui/icons-material';
+import { ThemeContext } from '../../theme/ThemeProvider';
 
 interface TopNavBarProps {
-  // Add any necessary props
+  companyName?: string;
 }
 
-const TopNavBar: React.FC<TopNavBarProps> = () => {
+export const TopNavBar: React.FC<TopNavBarProps> = ({ companyName = 'Dashboard' }) => {
+  const { mode, toggleTheme } = useContext(ThemeContext);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+  const handleAvatarClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
 
-  const handleMenuClose = () => {
+  const handleAvatarClose = () => {
     setAnchorEl(null);
   };
 
   return (
     <AppBar position="sticky">
       <Toolbar>
-        {/* Logo */}
-        <Typography variant="h6" component="div" sx={{ flexGrow: 0.1 }}>
-          Dashboard
-        </Typography>
-
-        {/* Navigation Links */}
-        <Typography sx={{ flexGrow: 0.4 }}>
-          {/* Add navigation links */}
-        </Typography>
+        {/* Logo and Company Name */}
+        <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+          <Avatar sx={{ mr: 2, bgcolor: 'primary.main' }}>
+            {companyName.charAt(0)}
+          </Avatar>
+          <Typography variant="h6" component="div">
+            {companyName}
+          </Typography>
+        </Box>
 
         {/* Search Field */}
-        <div style={{ position: 'relative', marginRight: 16 }}>
-          <SearchIcon style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: 8 }} />
-          <InputBase
-            placeholder="Search…"
-            inputProps={{ 'aria-label': 'search' }}
-            sx={{
-              color: 'inherit',
-              '& .MuiInputBase-input': {
-                paddingLeft: `calc(1em + 32px)`,
-                width: '100%',
-              },
+        <Box sx={{ flexGrow: 1, mx: 2 }}>
+          <TextField
+            variant="outlined"
+            size="small"
+            placeholder="Search..."
+            fullWidth
+            InputProps={{
+              startAdornment: <SearchIcon />,
             }}
           />
-        </div>
+        </Box>
+
+        {/* Theme Toggle */}
+        <IconButton onClick={toggleTheme} color="inherit">
+          {mode === 'light' ? <DarkModeIcon /> : <LightModeIcon />}
+        </IconButton>
 
         {/* New Project Button */}
-        <Button variant="contained" color="secondary" sx={{ marginRight: 2 }}>
+        <Button 
+          variant="contained" 
+          color="primary" 
+          sx={{ mr: 2 }}
+        >
           New Project
         </Button>
 
-        {/* User Avatar */}
+        {/* User Avatar with Dropdown */}
         <Avatar 
-          onClick={handleMenuOpen}
+          onClick={handleAvatarClick}
           sx={{ cursor: 'pointer' }}
         >
-          U
+          JD
         </Avatar>
-
-        {/* User Dropdown Menu */}
         <Menu
           anchorEl={anchorEl}
           open={Boolean(anchorEl)}
-          onClose={handleMenuClose}
+          onClose={handleAvatarClose}
         >
-          <MenuItem onClick={handleMenuClose}>Profile</MenuItem>
-          <MenuItem onClick={handleMenuClose}>Logout</MenuItem>
+          <MenuItem onClick={handleAvatarClose}>Profile</MenuItem>
+          <MenuItem onClick={handleAvatarClose}>Settings</MenuItem>
+          <MenuItem onClick={handleAvatarClose}>Logout</MenuItem>
         </Menu>
       </Toolbar>
     </AppBar>
   );
 };
-
-export default TopNavBar;
