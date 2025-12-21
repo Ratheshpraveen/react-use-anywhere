@@ -1,0 +1,71 @@
+:root {
+  --card-bg-color: #ffffff;
+  --card-shadow-color: rgba(0, 0, 0, 0.1);
+  --card-border-radius: 8px;
+  --card-hover-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --card-transition: all 0.3s ease;
+}
+
+.card {
+  background-color: var(--card-bg-color);
+  border-radius: var(--card-border-radius);
+  box-shadow: 0 2px 4px var(--card-shadow-color);
+  padding: 16px;
+  margin: 8px;
+  width: 100%;
+  max-width: 300px;
+  transition: var(--card-transition);
+}
+
+.card:hover {
+  box-shadow: var(--card-hover-shadow);
+}
+
+.card-title {
+  margin-top: 0;
+  margin-bottom: 8px;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.card-text {
+  color: #666;
+  margin-bottom: 0;
+}
+
+.card-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: var(--card-border-radius);
+  margin-bottom: 12px;
+}
+
+.card-clickable-content {
+  cursor: pointer;
+}
+
+.card-clickable-content:hover {
+  opacity: 0.9;
+}
+
+.card-compact {
+  padding: 12px;
+  max-width: 250px;
+}
+
+.card-title-compact {
+  font-size: 1rem;
+}
+
+.card-text-compact {
+  font-size: 0.9rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .card {
+    max-width: 100%;
+    margin: 8px 0;
+  }
+}
