@@ -13,6 +13,8 @@ import {
 } from '../services/themeService';
 import { logger } from '../services/logger';
 import { DebugPanel } from './DebugPanel';
+import { Card } from './Card';
+import { Card } from './Card';
 
 interface LogEntry {
   id: number;
